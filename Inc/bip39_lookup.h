@@ -12,5 +12,6 @@ uint16_t bip39_get_value(void);
 int bip39_is_complete(void);
 
 const char *bip39_get_word(void);
+const char *bip39_get_word_by_index(uint16_t index);
 
 #endif

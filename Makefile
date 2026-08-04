@@ -4,6 +4,7 @@ BUILD_DIR = build
 CUBE = /Users/dan/Developer/STM32/STM32CubeF4
 
 CC = arm-none-eabi-gcc
+HOST_CC ?= cc
 OBJCOPY = arm-none-eabi-objcopy
 SIZE = arm-none-eabi-size
 
@@ -38,6 +39,9 @@ VPATH = \
 SRCS = \
 	main.c \
 	bip39_lookup.c \
+	mnemonic_state.c \
+	mnemonic_ui.c \
+	sha256.c \
 	stm32f4xx_it.c \
 	system_stm32f4xx.c \
 	startup_stm32f469nihx.s \
@@ -85,7 +89,14 @@ $(BUILD_DIR)/%.o: %.s
 flash: $(BUILD_DIR)/$(PROJECT).elf
 	STM32_Programmer_CLI -c port=SWD -w $(BUILD_DIR)/$(PROJECT).elf -v -rst
 
+test: $(BUILD_DIR)/test_mnemonic_state
+	$(BUILD_DIR)/test_mnemonic_state
+
+$(BUILD_DIR)/test_mnemonic_state: Tests/test_mnemonic_state.c Src/mnemonic_state.c Src/sha256.c Src/bip39_lookup.c Inc/mnemonic_state.h Inc/sha256.h Inc/bip39_lookup.h
+	@mkdir -p $(BUILD_DIR)
+	$(HOST_CC) -std=c11 -Wall -Wextra -Werror -IInc Tests/test_mnemonic_state.c Src/mnemonic_state.c Src/sha256.c Src/bip39_lookup.c -o $@
+
 clean:
 	rm -rf $(BUILD_DIR)
 
-.PHONY: all clean flash
+.PHONY: all clean flash test

@@ -1,17 +1,26 @@
 #include "stm32f4xx_hal.h"
 #include "stm32469i_discovery.h"
 #include "stm32469i_discovery_lcd.h"
-#include "fonts.h"
-#include <stdio.h>
-#include "bip39_lookup.h"
+#include "mnemonic_state.h"
+#include "mnemonic_ui.h"
 #include "stm32469i_discovery_ts.h"
 
+enum {
+    TOUCH_POLL_MS = 20,
+    BACK_HOLD_MS = 500,
+    RESTART_HOLD_MS = 2000
+};
+
 static void SystemClock_Config( void );
-static void ClearEntry( void );
-static void AddBit( uint8_t bit );
+static void WaitForTouchRelease( void );
+static int WaitForProtectedButton( MnemonicUiButton button,
+                                   uint32_t required_ms,
+                                   int phrase_complete );
 
 int main( void )
 {
+    MnemonicState mnemonic;
+
     HAL_Init();
     SystemClock_Config();
 
@@ -21,71 +30,113 @@ int main( void )
 
     BSP_LCD_LayerDefaultInit( 0, LCD_FB_START_ADDRESS );
     BSP_LCD_SelectLayer( 0 );
-    BSP_LCD_SetFont( &Font24 );
-
-
-    BSP_LCD_Clear( LCD_COLOR_BLACK );
-
-    //  Buttons to select 0 or 1.
-    BSP_LCD_SetTextColor( LCD_COLOR_LIGHTGRAY );
-    BSP_LCD_FillRect( 0, 240, 400, 240 );
-    BSP_LCD_SetTextColor( LCD_COLOR_DARKGRAY );
-    BSP_LCD_FillRect( 400, 240, 400, 240 );
-
-    BSP_LCD_SetTextColor( LCD_COLOR_BLACK );
-    BSP_LCD_SetBackColor( LCD_COLOR_LIGHTGRAY );
-    BSP_LCD_DisplayStringAt( 200, 330, ( uint8_t *)"0", LEFT_MODE );
-
-    BSP_LCD_SetTextColor( LCD_COLOR_WHITE );
-    BSP_LCD_SetBackColor( LCD_COLOR_DARKGRAY );
-    BSP_LCD_DisplayStringAt( 600, 330, ( uint8_t *)"1", LEFT_MODE );
-
-
-    //  CLEAR button.
-    BSP_LCD_SetFont( &Font24);
-    BSP_LCD_SetTextColor( LCD_COLOR_BLUE );
-    BSP_LCD_FillRect( 600, 0, 200, 80 );
-    BSP_LCD_SetTextColor( LCD_COLOR_WHITE );
-    BSP_LCD_SetBackColor( LCD_COLOR_BLUE);
-    BSP_LCD_DisplayStringAt( 650, 25, ( uint8_t *)"CLEAR", LEFT_MODE );
+    mnemonic_state_init( &mnemonic );
+    mnemonic_ui_draw( &mnemonic );
 
     while( 1 )
     {
         TS_StateTypeDef ts_state;
 
         BSP_TS_GetState( &ts_state );
-
         if( ts_state.touchDetected )
         {
-            uint16_t x = ts_state.touchX[0];
-            uint16_t y = ts_state.touchY[0];
+            MnemonicUiButton button = mnemonic_ui_hit_test(
+                ts_state.touchX[0], ts_state.touchY[0] );
+            int phrase_complete = mnemonic_state_entropy_complete( &mnemonic );
 
-            if( x >= 600 && y < 100 )
+            if( button == MNEMONIC_UI_BUTTON_RESTART )
             {
-                ClearEntry();
+                if( WaitForProtectedButton( button, RESTART_HOLD_MS,
+                                            phrase_complete ) )
+                {
+                    mnemonic_state_init( &mnemonic );
+                    BSP_LED_Off( LED4 );
+                    mnemonic_ui_update( &mnemonic );
+                    WaitForTouchRelease();
+                }
             }
-
-            else if( y >= 240 )
+            else if( button == MNEMONIC_UI_BUTTON_BACK &&
+                     mnemonic_state_get_bit_count( &mnemonic ) > 0U )
             {
-                 if( x < 400 )
-                 {
-                    AddBit( 0 );
-                 }
-                 else
-                 {
-                    AddBit( 1 );
-                 }
+                if( WaitForProtectedButton( button, BACK_HOLD_MS,
+                                            phrase_complete ) )
+                {
+                    mnemonic_state_backspace( &mnemonic );
+                    BSP_LED_Off( LED4 );
+                    mnemonic_ui_update( &mnemonic );
+                    WaitForTouchRelease();
+                }
+            }
+            else if( !phrase_complete &&
+                     ( button == MNEMONIC_UI_BUTTON_ZERO ||
+                       button == MNEMONIC_UI_BUTTON_ONE ) )
+            {
+                uint8_t bit = button == MNEMONIC_UI_BUTTON_ONE ? 1U : 0U;
 
-                 while( ts_state.touchDetected )
-                 {
-                    BSP_TS_GetState( &ts_state );
-                    HAL_Delay( 20 );
-                 }
+                if( mnemonic_state_add_flip( &mnemonic, bit ) == 0 )
+                {
+                    if( mnemonic_state_entropy_complete( &mnemonic ) )
+                    {
+                        BSP_LED_On( LED4 );
+                    }
+                    mnemonic_ui_update( &mnemonic );
+                }
+                WaitForTouchRelease();
+            }
+            else
+            {
+                WaitForTouchRelease();
             }
         }
 
-        HAL_Delay( 20 );
+        HAL_Delay( TOUCH_POLL_MS );
     }
+}
+
+static void WaitForTouchRelease( void )
+{
+    TS_StateTypeDef ts_state;
+
+    do
+    {
+        BSP_TS_GetState( &ts_state );
+        if( ts_state.touchDetected )
+        {
+            HAL_Delay( TOUCH_POLL_MS );
+        }
+    }
+    while( ts_state.touchDetected );
+}
+
+static int WaitForProtectedButton( MnemonicUiButton button,
+                                   uint32_t required_ms,
+                                   int phrase_complete )
+{
+    TS_StateTypeDef ts_state;
+    uint32_t started = HAL_GetTick();
+    uint32_t elapsed = 0;
+
+    while( elapsed < required_ms )
+    {
+        BSP_TS_GetState( &ts_state );
+        if( !ts_state.touchDetected ||
+            mnemonic_ui_hit_test( ts_state.touchX[0],
+                                  ts_state.touchY[0] ) != button )
+        {
+            mnemonic_ui_clear_hold_progress( button, phrase_complete );
+            if( ts_state.touchDetected )
+            {
+                WaitForTouchRelease();
+            }
+            return 0;
+        }
+
+        elapsed = HAL_GetTick() - started;
+        mnemonic_ui_show_hold_progress( button, elapsed, required_ms );
+        HAL_Delay( TOUCH_POLL_MS );
+    }
+
+    return 1;
 }
 
 
@@ -144,61 +195,3 @@ static void SystemClock_Config( void )
         while(1) { ; }
     }
 }
-
-static void AddBit( uint8_t bit )
-{
-    bip39_add_bit( bit );
-
-    char bits[ 12 ];   // 11 bits + null
-    uint8_t count = bip39_get_bit_count( );
-    uint16_t value = bip39_get_value( );
-
-    // build string from right to left
-    for( int ii = 0; ii < 11; ii++ )
-    {
-        if( ii < count )
-        {
-            bits[10 - ii] = ( value & ( 1 << ii ) ) ? '1' : '0';
-        }
-        else
-        {
-            bits[10 - ii] = ' ';
-        }
-    }
-
-    bits[ 11 ] = '\0';
-
-    BSP_LCD_SetFont( &Font24 );
-    BSP_LCD_SetTextColor( LCD_COLOR_WHITE );
-    BSP_LCD_SetBackColor( LCD_COLOR_BLACK );
-
-    BSP_LCD_DisplayStringAt( 100, 130, ( uint8_t *)bits, RIGHT_MODE );
-
-
-    if( bip39_is_complete( ) )
-    {
-        char buffer[ 32 ];
-
-        const char *seed_word = bip39_get_word( );
-        sprintf( buffer, "%u: %s", bip39_get_value() + 1, seed_word );
-
-        BSP_LCD_DisplayStringAt( 50, 130, ( uint8_t *)buffer, LEFT_MODE );
-
-        BSP_LED_On( LED4 );
-    }
-}
-
-
-static void ClearEntry( void )
-{
-    bip39_clear( );
-
-    BSP_LED_Off( LED4 );
-
-    BSP_LCD_SetTextColor( LCD_COLOR_BLACK );
-    BSP_LCD_FillRect( 0, 100, 800, 120 );
-
-    BSP_LCD_SetTextColor( LCD_COLOR_WHITE );
-    BSP_LCD_SetBackColor( LCD_COLOR_BLACK );
-}
-

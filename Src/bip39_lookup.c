@@ -1,4 +1,5 @@
-#include <stdint.h>
+#include "bip39_lookup.h"
+
 #include <stddef.h>
 
 static const uint8_t BIP39_BITS_PER_WORD = 11;
@@ -64,9 +65,14 @@ const char *bip39_get_word(void)
         return "";
     }
 
-    if (current_value >= BIP39_WORD_COUNT) {
+    return bip39_get_word_by_index(current_value);
+}
+
+const char *bip39_get_word_by_index(uint16_t index)
+{
+    if (index >= BIP39_WORD_COUNT) {
         return "ERR";
     }
 
-    return wordlist[current_value];
+    return wordlist[index];
 }
