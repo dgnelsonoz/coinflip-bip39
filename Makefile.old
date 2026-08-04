@@ -1,0 +1,84 @@
+PROJECT = seed_selecter
+BUILD_DIR = build
+
+CUBE = /Users/dan/Developer/STM32/STM32CubeF4
+
+CC = arm-none-eabi-gcc
+OBJCOPY = arm-none-eabi-objcopy
+SIZE = arm-none-eabi-size
+
+CPU = -mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard
+DEFS = -DSTM32F469xx -DUSE_HAL_DRIVER
+OPT = -Og
+
+CFLAGS = $(CPU) $(DEFS) $(OPT) -Wall -ffunction-sections -fdata-sections
+CFLAGS += -IInc
+CFLAGS += -I$(CUBE)/Drivers/CMSIS/Device/ST/STM32F4xx/Include
+CFLAGS += -I$(CUBE)/Drivers/CMSIS/Include
+CFLAGS += -I$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Inc
+CFLAGS += -I$(CUBE)/Drivers/BSP/STM32469I-Discovery
+CFLAGS += -I$(CUBE)/Drivers/BSP/Components/Common
+CFLAGS += -I$(CUBE)/Utilities/Fonts
+CFLAGS += -I$(CUBE)/Drivers/BSP/Components/ft6x06
+
+LDSCRIPT = STM32F469NIHX_FLASH.ld
+LDFLAGS = $(CPU) -T$(LDSCRIPT) -Wl,--gc-sections -Wl,-Map=$(BUILD_DIR)/$(PROJECT).map
+LDFLAGS += -Wl,--no-warn-rwx-segments
+LDLIBS = -lc -lm -lnosys
+
+SRCS = \
+	Src/main.c \
+	Src/bip39_lookup.c \
+	Src/stm32f4xx_it.c \
+	Src/system_stm32f4xx.c \
+	Src/startup_stm32f469nihx.s \
+	Src/stm32469i_discovery_ts.c \
+	Src/ft6x06.c \
+	Src/syscalls.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pwr_ex.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ex.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash_ramfunc.c \
+	$(CUBE)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery.c \
+	$(CUBE)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_lcd.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma2d.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_ltdc.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_ltdc_ex.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dsi.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_sdram.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_fmc.c \
+	$(CUBE)/Drivers/BSP/STM32469I-Discovery/stm32469i_discovery_sdram.c \
+	$(CUBE)/Drivers/BSP/Components/nt35510/nt35510.c \
+	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c.c \
+
+OBJS = $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRCS))
+
+all: $(BUILD_DIR)/$(PROJECT).elf
+
+$(BUILD_DIR)/$(PROJECT).elf: $(OBJS) $(LDSCRIPT)
+	@mkdir -p $(dir $@)
+	$(CC) $(OBJS) $(LDFLAGS) $(LDLIBS) -o $@
+	$(SIZE) $@
+
+$(BUILD_DIR)/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR)/%.o: %.s
+	@mkdir -p $(dir $@)
+	$(CC) $(CPU) -c $< -o $@
+
+flash: $(BUILD_DIR)/$(PROJECT).elf
+	STM32_Programmer_CLI -c port=SWD -w $(BUILD_DIR)/$(PROJECT).elf -v -rst
+
+clean:
+	rm -rf $(BUILD_DIR)
+
+.PHONY: all clean flash
