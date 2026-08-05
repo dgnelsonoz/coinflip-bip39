@@ -46,19 +46,19 @@ static void test_word_completion_and_index(void)
     assert(mnemonic_state_get_word_index(&state, 2, &index) == -3);
 }
 
-static void test_backspace_stops_at_current_word(void)
+static void test_backspace_crosses_word_boundaries(void)
 {
     MnemonicState state;
     uint16_t ii;
 
     mnemonic_state_init(&state);
     add_repeating_bits(&state, 16);
-    for (ii = 0; ii < 5; ii++) {
+    for (ii = 0; ii < 6; ii++) {
         assert(mnemonic_state_backspace(&state) == 1);
     }
-    assert(mnemonic_state_get_bit_count(&state) == 11);
-    assert(mnemonic_state_get_completed_word_count(&state) == 1);
-    assert(mnemonic_state_backspace(&state) == 0);
+    assert(mnemonic_state_get_bit_count(&state) == 10);
+    assert(mnemonic_state_get_completed_word_count(&state) == 0);
+    assert(mnemonic_state_get_current_word_bit_count(&state) == 10);
 }
 
 static void test_backspace_reopens_completed_word(void)
@@ -90,13 +90,9 @@ static void test_final_entropy_bits(void)
     assert(mnemonic_state_entropy_complete(&state));
     assert(mnemonic_state_add_flip(&state, 0) == -3);
 
-    assert(mnemonic_state_backspace(&state) == 1);
-    assert(mnemonic_state_get_bit_count(&state) == 255);
-    assert(!mnemonic_state_entropy_complete(&state));
-    assert(mnemonic_state_backspace(&state) == 1);
-    assert(mnemonic_state_backspace(&state) == 1);
-    assert(mnemonic_state_get_bit_count(&state) == 253);
     assert(mnemonic_state_backspace(&state) == 0);
+    assert(mnemonic_state_get_bit_count(&state) == 256);
+    assert(mnemonic_state_entropy_complete(&state));
 }
 
 static void test_secure_restart(void)
@@ -213,7 +209,7 @@ int main(void)
 {
     test_initial_state_and_validation();
     test_word_completion_and_index();
-    test_backspace_stops_at_current_word();
+    test_backspace_crosses_word_boundaries();
     test_backspace_reopens_completed_word();
     test_final_entropy_bits();
     test_secure_restart();

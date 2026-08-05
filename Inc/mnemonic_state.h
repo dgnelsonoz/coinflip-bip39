@@ -14,7 +14,6 @@ enum {
 typedef struct {
     uint8_t entropy[MNEMONIC_ENTROPY_BYTES];
     uint16_t bit_count;
-    uint16_t correction_floor;
 } MnemonicState;
 
 void mnemonic_state_init(MnemonicState *state);

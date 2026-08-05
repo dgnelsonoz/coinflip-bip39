@@ -1,5 +1,7 @@
-PROJECT = seed_selecter
+PROJECT = coinflip
 BUILD_DIR = build
+RELEASE_DIR = release
+VERSION ?= dev
 
 CUBE = /Users/dan/Developer/STM32/STM32CubeF4
 
@@ -89,6 +91,11 @@ $(BUILD_DIR)/%.o: %.s
 flash: $(BUILD_DIR)/$(PROJECT).elf
 	STM32_Programmer_CLI -c port=SWD -w $(BUILD_DIR)/$(PROJECT).elf -v -rst
 
+release: $(BUILD_DIR)/$(PROJECT).elf
+	@mkdir -p $(RELEASE_DIR)
+	cp $(BUILD_DIR)/$(PROJECT).elf $(RELEASE_DIR)/$(PROJECT)-$(VERSION).elf
+	@echo "Release file: $(RELEASE_DIR)/$(PROJECT)-$(VERSION).elf"
+
 test: $(BUILD_DIR)/test_mnemonic_state
 	$(BUILD_DIR)/test_mnemonic_state
 
@@ -99,4 +106,4 @@ $(BUILD_DIR)/test_mnemonic_state: Tests/test_mnemonic_state.c Src/mnemonic_state
 clean:
 	rm -rf $(BUILD_DIR)
 
-.PHONY: all clean flash test
+.PHONY: all clean flash release test

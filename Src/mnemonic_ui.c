@@ -71,6 +71,21 @@ static void format_partial_bits(const MnemonicState *state, char *bits,
     bits[target_bits] = '\0';
 }
 
+static void format_index_bits(uint16_t index, char *bits, int checksum_word)
+{
+    uint8_t source_bit;
+    uint8_t output = 0;
+
+    for (source_bit = 0; source_bit < MNEMONIC_WORD_BITS; source_bit++) {
+        if (checksum_word && source_bit == 3U) {
+            bits[output++] = '|';
+        }
+        bits[output++] = (index & (1U << (10U - source_bit))) != 0U
+                         ? '1' : '0';
+    }
+    bits[output] = '\0';
+}
+
 static void draw_word_cells(const MnemonicState *state)
 {
     char entry[24];
@@ -100,13 +115,16 @@ static void draw_word_cells(const MnemonicState *state)
                      bip39_get_word_by_index(index),
                      (unsigned int)index + 1U);
         } else if (word_number == mnemonic_state_get_current_word_number(state)) {
-            snprintf(entry, sizeof(entry), "%02u [active]",
-                     (unsigned int)word_number);
+            const char *state_label =
+                mnemonic_state_get_current_word_bit_count(state) == 0U
+                ? "ready" : "in progress";
+            snprintf(entry, sizeof(entry), "%02u [%s]",
+                     (unsigned int)word_number, state_label);
         } else if (word_number == 24U) {
             snprintf(entry, sizeof(entry), "%02u [checksum]",
                      (unsigned int)word_number);
         } else {
-            snprintf(entry, sizeof(entry), "%02u [pending]",
+            snprintf(entry, sizeof(entry), "%02u",
                      (unsigned int)word_number);
         }
 
@@ -124,9 +142,13 @@ static void draw_status(const MnemonicState *state)
 {
     char status[64];
     char bits[MNEMONIC_WORD_BITS + 1];
+    char verification[72];
+    char verification_bits[MNEMONIC_WORD_BITS + 2];
     uint8_t word_number = mnemonic_state_get_current_word_number(state);
     uint8_t entered = mnemonic_state_get_current_word_bit_count(state);
     uint8_t required = word_number == 24U ? 3U : MNEMONIC_WORD_BITS;
+    uint8_t completed = mnemonic_state_get_completed_word_count(state);
+    uint16_t last_index;
 
     BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
     BSP_LCD_FillRect(0, WORD_GRID_HEIGHT, DISPLAY_WIDTH, STATUS_HEIGHT);
@@ -135,18 +157,37 @@ static void draw_status(const MnemonicState *state)
     BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
     if (mnemonic_state_entropy_complete(state)) {
         BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
-        BSP_LCD_DisplayStringAt(0, 220, (uint8_t *)"PHRASE COMPLETE - 24 WORDS",
+        BSP_LCD_DisplayStringAt(0, 198, (uint8_t *)"PHRASE COMPLETE - 24 WORDS",
                                 CENTER_MODE);
-        return;
+        completed = MNEMONIC_WORD_COUNT;
+        mnemonic_state_get_final_word_index(state, &last_index);
+    } else {
+        format_partial_bits(state, bits, required);
+        snprintf(status, sizeof(status),
+                 "WORD %02u/24   FLIP %02u/%02u   BITS: %s",
+                 (unsigned int)word_number, (unsigned int)entered,
+                 (unsigned int)required, bits);
+        BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+        display_text(20, 198, status);
+
+        if (completed > 0U) {
+            mnemonic_state_get_word_index(state, completed, &last_index);
+        }
     }
 
-    format_partial_bits(state, bits, required);
-    snprintf(status, sizeof(status),
-             "WORD %02u/24   FLIP %02u/%02u   BITS: %s",
-             (unsigned int)word_number, (unsigned int)entered,
-             (unsigned int)required, bits);
-    BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-    display_text(20, 210, status);
+    if (completed > 0U) {
+        format_index_bits(last_index, verification_bits,
+                          completed == MNEMONIC_WORD_COUNT);
+        snprintf(verification, sizeof(verification),
+                 "LAST %02u: %s = INDEX %04u = LIST %04u = %s",
+                 (unsigned int)completed, verification_bits,
+                 (unsigned int)last_index,
+                 (unsigned int)last_index + 1U,
+                 bip39_get_word_by_index(last_index));
+        BSP_LCD_SetFont(&Font16);
+        BSP_LCD_SetTextColor(LCD_COLOR_LIGHTGRAY);
+        display_text(20, 248, verification);
+    }
 }
 
 static void fill_button(uint16_t x, uint16_t width, uint32_t color)
@@ -157,9 +198,7 @@ static void fill_button(uint16_t x, uint16_t width, uint32_t color)
 
 static uint32_t button_color(MnemonicUiButton button, int phrase_complete)
 {
-    if (phrase_complete &&
-        (button == MNEMONIC_UI_BUTTON_ZERO ||
-         button == MNEMONIC_UI_BUTTON_ONE)) {
+    if (phrase_complete && button != MNEMONIC_UI_BUTTON_RESTART) {
         return LCD_COLOR_GRAY;
     }
 
@@ -218,7 +257,7 @@ static void draw_buttons(int phrase_complete)
     fill_button(one_x, BIT_BUTTON_WIDTH,
                 button_color(MNEMONIC_UI_BUTTON_ONE, phrase_complete));
 
-    BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+    BSP_LCD_SetTextColor(phrase_complete ? LCD_COLOR_DARKGRAY : LCD_COLOR_BLACK);
     BSP_LCD_DrawVLine(back_x, BUTTON_TOP, BUTTON_HEIGHT);
     BSP_LCD_DrawVLine(zero_x, BUTTON_TOP, BUTTON_HEIGHT);
     BSP_LCD_DrawVLine(one_x, BUTTON_TOP, BUTTON_HEIGHT);
@@ -264,6 +303,21 @@ void mnemonic_ui_update(const MnemonicState *state)
     draw_word_cells(state);
     draw_status(state);
     draw_buttons(mnemonic_state_entropy_complete(state));
+}
+
+void mnemonic_ui_draw_error(const char *message)
+{
+    BSP_LCD_Clear(LCD_COLOR_BLACK);
+    BSP_LCD_SetFont(&Font24);
+    BSP_LCD_SetTextColor(LCD_COLOR_RED);
+    BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
+    BSP_LCD_DisplayStringAt(0, 190, (uint8_t *)"HARDWARE ERROR",
+                            CENTER_MODE);
+    BSP_LCD_SetFont(&Font20);
+    BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+    BSP_LCD_DisplayStringAt(0, 240, (uint8_t *)message, CENTER_MODE);
+    BSP_LCD_DisplayStringAt(0, 275, (uint8_t *)"CHECK POWER AND RESTART",
+                            CENTER_MODE);
 }
 
 MnemonicUiButton mnemonic_ui_hit_test(uint16_t x, uint16_t y)

@@ -33,7 +33,6 @@ void mnemonic_state_init(MnemonicState *state)
         entropy[ii] = 0;
     }
     state->bit_count = 0;
-    state->correction_floor = 0;
 }
 
 int mnemonic_state_add_flip(MnemonicState *state, uint8_t bit)
@@ -49,15 +48,6 @@ int mnemonic_state_add_flip(MnemonicState *state, uint8_t bit)
     }
     if (state->bit_count >= MNEMONIC_ENTROPY_BITS) {
         return -3;
-    }
-
-    if (state->bit_count < MNEMONIC_DIRECT_WORDS * MNEMONIC_WORD_BITS) {
-        if ((state->bit_count % MNEMONIC_WORD_BITS) == 0U) {
-            state->correction_floor = state->bit_count;
-        }
-    } else if (state->bit_count ==
-               MNEMONIC_DIRECT_WORDS * MNEMONIC_WORD_BITS) {
-        state->correction_floor = state->bit_count;
     }
 
     byte_position = state->bit_count / 8U;
@@ -77,7 +67,10 @@ int mnemonic_state_backspace(MnemonicState *state)
     if (state == NULL) {
         return -1;
     }
-    if (state->bit_count <= state->correction_floor) {
+    if (mnemonic_state_entropy_complete(state)) {
+        return 0;
+    }
+    if (state->bit_count == 0U) {
         return 0;
     }
 

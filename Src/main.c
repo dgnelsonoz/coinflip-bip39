@@ -12,6 +12,7 @@ enum {
 };
 
 static void SystemClock_Config( void );
+static void FatalError( void );
 static void WaitForTouchRelease( void );
 static int WaitForProtectedButton( MnemonicUiButton button,
                                    uint32_t required_ms,
@@ -25,11 +26,18 @@ int main( void )
     SystemClock_Config();
 
     BSP_LED_Init( LED4 );
-    BSP_LCD_Init( );
-    BSP_TS_Init( 800, 480 );
+    if( BSP_LCD_Init( ) != LCD_OK )
+    {
+        FatalError();
+    }
 
     BSP_LCD_LayerDefaultInit( 0, LCD_FB_START_ADDRESS );
     BSP_LCD_SelectLayer( 0 );
+    if( BSP_TS_Init( 800, 480 ) != TS_OK )
+    {
+        mnemonic_ui_draw_error( "TOUCHSCREEN NOT DETECTED" );
+        FatalError();
+    }
     mnemonic_state_init( &mnemonic );
     mnemonic_ui_draw( &mnemonic );
 
@@ -56,6 +64,7 @@ int main( void )
                 }
             }
             else if( button == MNEMONIC_UI_BUTTON_BACK &&
+                     !phrase_complete &&
                      mnemonic_state_get_bit_count( &mnemonic ) > 0U )
             {
                 if( WaitForProtectedButton( button, BACK_HOLD_MS,
@@ -90,6 +99,15 @@ int main( void )
         }
 
         HAL_Delay( TOUCH_POLL_MS );
+    }
+}
+
+static void FatalError( void )
+{
+    while( 1 )
+    {
+        BSP_LED_Toggle( LED4 );
+        HAL_Delay( 250 );
     }
 }
 
