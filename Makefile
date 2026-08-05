@@ -15,7 +15,7 @@ DEFS = -DSTM32F469xx -DUSE_HAL_DRIVER
 OPT = -Og
 
 CFLAGS = $(CPU) $(DEFS) $(OPT) -Wall -ffunction-sections -fdata-sections
-CFLAGS += -IInc
+CFLAGS += -Iinc
 CFLAGS += -I$(CUBE)/Drivers/CMSIS/Device/ST/STM32F4xx/Include
 CFLAGS += -I$(CUBE)/Drivers/CMSIS/Include
 CFLAGS += -I$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Inc
@@ -32,7 +32,7 @@ LDFLAGS += -Wl,--no-warn-rwx-segments
 LDLIBS = -lc -lm -lnosys
 
 VPATH = \
-	Src \
+	src \
 	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src \
 	$(CUBE)/Drivers/BSP/STM32469I-Discovery \
 	$(CUBE)/Drivers/BSP/Components/nt35510 \
@@ -99,9 +99,9 @@ release: $(BUILD_DIR)/$(PROJECT).elf
 test: $(BUILD_DIR)/test_mnemonic_state
 	$(BUILD_DIR)/test_mnemonic_state
 
-$(BUILD_DIR)/test_mnemonic_state: Tests/test_mnemonic_state.c Src/mnemonic_state.c Src/sha256.c Src/bip39_lookup.c Inc/mnemonic_state.h Inc/sha256.h Inc/bip39_lookup.h
+$(BUILD_DIR)/test_mnemonic_state: tests/test_mnemonic_state.c src/mnemonic_state.c src/sha256.c src/bip39_lookup.c inc/mnemonic_state.h inc/sha256.h inc/bip39_lookup.h
 	@mkdir -p $(BUILD_DIR)
-	$(HOST_CC) -std=c11 -Wall -Wextra -Werror -IInc Tests/test_mnemonic_state.c Src/mnemonic_state.c Src/sha256.c Src/bip39_lookup.c -o $@
+	$(HOST_CC) -std=c11 -Wall -Wextra -Werror -Iinc tests/test_mnemonic_state.c src/mnemonic_state.c src/sha256.c src/bip39_lookup.c -o $@
 
 clean:
 	rm -rf $(BUILD_DIR)
