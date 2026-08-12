@@ -163,46 +163,116 @@ static void load_entropy(MnemonicState *state,
     }
 }
 
-static void assert_mnemonic(const uint8_t entropy[MNEMONIC_ENTROPY_BYTES],
-                            const char *const expected[MNEMONIC_WORD_COUNT])
+static uint8_t hex_nibble(char value)
 {
+    if (value >= '0' && value <= '9') {
+        return (uint8_t)(value - '0');
+    }
+    if (value >= 'a' && value <= 'f') {
+        return (uint8_t)(value - 'a' + 10);
+    }
+    assert(0);
+    return 0;
+}
+
+static void assert_mnemonic(const char *entropy_hex,
+                            const char *expected_mnemonic)
+{
+    uint8_t entropy[MNEMONIC_ENTROPY_BYTES];
     MnemonicState state;
+    char actual[256] = { 0 };
+    size_t used = 0;
     uint16_t index;
     uint8_t word;
+
+    assert(strlen(entropy_hex) == MNEMONIC_ENTROPY_BYTES * 2U);
+    for (word = 0; word < MNEMONIC_ENTROPY_BYTES; word++) {
+        entropy[word] = (uint8_t)((hex_nibble(entropy_hex[word * 2U]) << 4) |
+                                  hex_nibble(entropy_hex[word * 2U + 1U]));
+    }
 
     load_entropy(&state, entropy);
     for (word = 1; word <= MNEMONIC_DIRECT_WORDS; word++) {
         assert(mnemonic_state_get_word_index(&state, word, &index) == 0);
-        assert(strcmp(bip39_get_word_by_index(index), expected[word - 1U]) == 0);
+        used += (size_t)snprintf(actual + used, sizeof(actual) - used,
+                                 "%s%s", word == 1U ? "" : " ",
+                                 bip39_get_word_by_index(index));
+        assert(used < sizeof(actual));
     }
     assert(mnemonic_state_get_final_word_index(&state, &index) == 0);
-    assert(strcmp(bip39_get_word_by_index(index), expected[23]) == 0);
+    used += (size_t)snprintf(actual + used, sizeof(actual) - used, " %s",
+                             bip39_get_word_by_index(index));
+    assert(used < sizeof(actual));
+    assert(strcmp(actual, expected_mnemonic) == 0);
 }
 
 static void test_bip39_vectors(void)
 {
-    static const uint8_t zero_entropy[MNEMONIC_ENTROPY_BYTES] = { 0 };
-    static const char *const zero_words[MNEMONIC_WORD_COUNT] = {
-        "abandon", "abandon", "abandon", "abandon", "abandon", "abandon",
-        "abandon", "abandon", "abandon", "abandon", "abandon", "abandon",
-        "abandon", "abandon", "abandon", "abandon", "abandon", "abandon",
-        "abandon", "abandon", "abandon", "abandon", "abandon", "art"
+    static const struct {
+        const char *entropy;
+        const char *mnemonic;
+    } vectors[] = {
+        {
+            "00000000000000000000000000000000"
+            "00000000000000000000000000000000",
+            "abandon abandon abandon abandon abandon abandon abandon abandon "
+            "abandon abandon abandon abandon abandon abandon abandon abandon "
+            "abandon abandon abandon abandon abandon abandon abandon art"
+        },
+        {
+            "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f"
+            "7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f",
+            "legal winner thank year wave sausage worth useful legal winner "
+            "thank year wave sausage worth useful legal winner thank year "
+            "wave sausage worth title"
+        },
+        {
+            "80808080808080808080808080808080"
+            "80808080808080808080808080808080",
+            "letter advice cage absurd amount doctor acoustic avoid letter "
+            "advice cage absurd amount doctor acoustic avoid letter advice "
+            "cage absurd amount doctor acoustic bless"
+        },
+        {
+            "ffffffffffffffffffffffffffffffff"
+            "ffffffffffffffffffffffffffffffff",
+            "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo "
+            "zoo zoo zoo zoo zoo zoo zoo vote"
+        },
+        {
+            "68a79eaca2324873eacc50cb9c6eca8c"
+            "c68ea5d936f98787c60c7ebc74e6ce7c",
+            "hamster diagram private dutch cause delay private meat slide "
+            "toddler razor book happy fancy gospel tennis maple dilemma loan "
+            "word shrug inflict delay length"
+        },
+        {
+            "9f6a2878b2520799a44ef18bc7df394e"
+            "7061a224d2c33cd015b157d746869863",
+            "panda eyebrow bullet gorilla call smoke muffin taste mesh "
+            "discover soft ostrich alcohol speed nation flash devote level "
+            "hobby quick inner drive ghost inside"
+        },
+        {
+            "066dca1a2bb7e8a1db2832148ce9933e"
+            "ea0f3ac9548d793112d9a95c9407efad",
+            "all hour make first leader extend hole alien behind guard gospel "
+            "lava path output census museum junior mass reopen famous sing "
+            "advance salt reform"
+        },
+        {
+            "f585c11aec520db57dd353c69554b21a"
+            "89b20fb0650966fa0a9d6f74fd989d8f",
+            "void come effort suffer camp survey warrior heavy shoot primary "
+            "clutch crush open amazing screen patrol group space point ten "
+            "exist slush involve unfold"
+        }
     };
-    static const uint8_t varied_entropy[MNEMONIC_ENTROPY_BYTES] = {
-        0x68, 0xa7, 0x9e, 0xac, 0xa2, 0x32, 0x48, 0x73,
-        0xea, 0xcc, 0x50, 0xcb, 0x9c, 0x6e, 0xca, 0x8c,
-        0xc6, 0x8e, 0xa5, 0xd9, 0x36, 0xf9, 0x87, 0x87,
-        0xc6, 0x0c, 0x7e, 0xbc, 0x74, 0xe6, 0xce, 0x7c
-    };
-    static const char *const varied_words[MNEMONIC_WORD_COUNT] = {
-        "hamster", "diagram", "private", "dutch", "cause", "delay",
-        "private", "meat", "slide", "toddler", "razor", "book",
-        "happy", "fancy", "gospel", "tennis", "maple", "dilemma",
-        "loan", "word", "shrug", "inflict", "delay", "length"
-    };
+    size_t ii;
 
-    assert_mnemonic(zero_entropy, zero_words);
-    assert_mnemonic(varied_entropy, varied_words);
+    for (ii = 0; ii < sizeof(vectors) / sizeof(vectors[0]); ii++) {
+        assert_mnemonic(vectors[ii].entropy, vectors[ii].mnemonic);
+    }
 }
 
 int main(void)

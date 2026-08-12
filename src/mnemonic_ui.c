@@ -9,12 +9,15 @@
 
 enum {
     DISPLAY_WIDTH = 800,
-    WORD_GRID_HEIGHT = 180,
-    STATUS_HEIGHT = 120,
-    BUTTON_TOP = WORD_GRID_HEIGHT + STATUS_HEIGHT,
-    BUTTON_HEIGHT = 180,
+    TITLE_HEIGHT = 32,
+    WORD_GRID_TOP = TITLE_HEIGHT,
+    WORD_GRID_HEIGHT = 216,
+    STATUS_TOP = WORD_GRID_TOP + WORD_GRID_HEIGHT,
+    STATUS_HEIGHT = 80,
+    BUTTON_TOP = STATUS_TOP + STATUS_HEIGHT,
+    BUTTON_HEIGHT = 152,
     WORD_COLUMN_WIDTH = 200,
-    WORD_ROW_HEIGHT = 28,
+    WORD_ROW_HEIGHT = 36,
     RESTART_WIDTH = 130,
     BACK_WIDTH = 130,
     BIT_BUTTON_WIDTH = 270
@@ -24,11 +27,28 @@ typedef char button_widths_must_fill_display[
     (RESTART_WIDTH + BACK_WIDTH + (2 * BIT_BUTTON_WIDTH) == DISPLAY_WIDTH)
     ? 1 : -1];
 typedef char vertical_regions_must_fill_display[
-    (WORD_GRID_HEIGHT + STATUS_HEIGHT + BUTTON_HEIGHT == 480) ? 1 : -1];
+    (TITLE_HEIGHT + WORD_GRID_HEIGHT + STATUS_HEIGHT + BUTTON_HEIGHT == 480)
+    ? 1 : -1];
+typedef char word_rows_must_fill_grid[
+    (6 * WORD_ROW_HEIGHT == WORD_GRID_HEIGHT) ? 1 : -1];
+
+static uint8_t selected_word;
 
 static void display_text(uint16_t x, uint16_t y, const char *text)
 {
     BSP_LCD_DisplayStringAt(x, y, (uint8_t *)text, LEFT_MODE);
+}
+
+static void draw_title(void)
+{
+    BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
+    BSP_LCD_FillRect(0, 0, DISPLAY_WIDTH, TITLE_HEIGHT);
+    BSP_LCD_SetFont(&Font20);
+    BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
+    BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
+    BSP_LCD_DisplayStringAt(0, 6, (uint8_t *)"COIN FLIPS TO BIP-39",
+                            CENTER_MODE);
+    BSP_LCD_DrawHLine(0, TITLE_HEIGHT - 1U, DISPLAY_WIDTH);
 }
 
 static void get_word_cell(uint8_t word_number, uint16_t *x, uint16_t *y)
@@ -36,19 +56,24 @@ static void get_word_cell(uint8_t word_number, uint16_t *x, uint16_t *y)
     uint8_t zero_based = (uint8_t)(word_number - 1U);
 
     *x = (uint16_t)(zero_based / 6U) * WORD_COLUMN_WIDTH;
-    *y = (uint16_t)(zero_based % 6U) * WORD_ROW_HEIGHT;
+    *y = WORD_GRID_TOP + (uint16_t)(zero_based % 6U) * WORD_ROW_HEIGHT;
 }
 
 static void draw_grid_lines(void)
 {
     uint8_t column;
+    uint8_t row;
 
     BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
     for (column = 1; column < 4; column++) {
         BSP_LCD_DrawVLine((uint16_t)column * WORD_COLUMN_WIDTH,
-                          0, WORD_GRID_HEIGHT);
+                          WORD_GRID_TOP, WORD_GRID_HEIGHT);
     }
-    BSP_LCD_DrawHLine(0, WORD_GRID_HEIGHT - 1, DISPLAY_WIDTH);
+    for (row = 1; row <= 6; row++) {
+        BSP_LCD_DrawHLine(0, WORD_GRID_TOP +
+                          (uint16_t)row * WORD_ROW_HEIGHT - 1U,
+                          DISPLAY_WIDTH);
+    }
 }
 
 static void format_partial_bits(const MnemonicState *state, char *bits,
@@ -134,7 +159,13 @@ static void draw_word_cells(const MnemonicState *state)
                             mnemonic_state_get_current_word_number(state) &&
                             !mnemonic_state_entropy_complete(state)
                             ? LCD_COLOR_CYAN : LCD_COLOR_WHITE);
-        display_text(x + 10U, y + 8U, entry);
+        display_text(x + 10U, y + 12U, entry);
+
+        if (word_number == selected_word) {
+            BSP_LCD_SetTextColor(LCD_COLOR_YELLOW);
+            BSP_LCD_DrawRect(x + 2U, y + 2U,
+                             WORD_COLUMN_WIDTH - 4U, WORD_ROW_HEIGHT - 4U);
+        }
     }
 }
 
@@ -148,19 +179,20 @@ static void draw_status(const MnemonicState *state)
     uint8_t entered = mnemonic_state_get_current_word_bit_count(state);
     uint8_t required = word_number == 24U ? 3U : MNEMONIC_WORD_BITS;
     uint8_t completed = mnemonic_state_get_completed_word_count(state);
-    uint16_t last_index;
+    uint8_t detail_word;
+    uint16_t detail_index;
 
     BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
-    BSP_LCD_FillRect(0, WORD_GRID_HEIGHT, DISPLAY_WIDTH, STATUS_HEIGHT);
+    BSP_LCD_FillRect(0, STATUS_TOP, DISPLAY_WIDTH, STATUS_HEIGHT);
 
     BSP_LCD_SetFont(&Font20);
     BSP_LCD_SetBackColor(LCD_COLOR_BLACK);
     if (mnemonic_state_entropy_complete(state)) {
         BSP_LCD_SetTextColor(LCD_COLOR_GREEN);
-        BSP_LCD_DisplayStringAt(0, 198, (uint8_t *)"PHRASE COMPLETE - 24 WORDS",
+        BSP_LCD_DisplayStringAt(0, STATUS_TOP + 8U,
+                                (uint8_t *)"PHRASE COMPLETE - 24 WORDS",
                                 CENTER_MODE);
         completed = MNEMONIC_WORD_COUNT;
-        mnemonic_state_get_final_word_index(state, &last_index);
     } else {
         format_partial_bits(state, bits, required);
         snprintf(status, sizeof(status),
@@ -168,25 +200,27 @@ static void draw_status(const MnemonicState *state)
                  (unsigned int)word_number, (unsigned int)entered,
                  (unsigned int)required, bits);
         BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
-        display_text(20, 198, status);
-
-        if (completed > 0U) {
-            mnemonic_state_get_word_index(state, completed, &last_index);
-        }
+        display_text(20, STATUS_TOP + 8U, status);
     }
 
     if (completed > 0U) {
-        format_index_bits(last_index, verification_bits,
-                          completed == MNEMONIC_WORD_COUNT);
+        detail_word = selected_word != 0U ? selected_word : completed;
+        if (detail_word == MNEMONIC_WORD_COUNT) {
+            mnemonic_state_get_final_word_index(state, &detail_index);
+        } else {
+            mnemonic_state_get_word_index(state, detail_word, &detail_index);
+        }
+        format_index_bits(detail_index, verification_bits,
+                          detail_word == MNEMONIC_WORD_COUNT);
         snprintf(verification, sizeof(verification),
-                 "LAST %02u: %s = INDEX %04u = LIST %04u = %s",
-                 (unsigned int)completed, verification_bits,
-                 (unsigned int)last_index,
-                 (unsigned int)last_index + 1U,
-                 bip39_get_word_by_index(last_index));
+                 "WORD %02u: %s = INDEX %04u = LIST %04u = %s",
+                 (unsigned int)detail_word, verification_bits,
+                 (unsigned int)detail_index,
+                 (unsigned int)detail_index + 1U,
+                 bip39_get_word_by_index(detail_index));
         BSP_LCD_SetFont(&Font16);
         BSP_LCD_SetTextColor(LCD_COLOR_LIGHTGRAY);
-        display_text(20, 248, verification);
+        display_text(20, STATUS_TOP + 48U, verification);
     }
 }
 
@@ -265,33 +299,40 @@ static void draw_buttons(int phrase_complete)
     BSP_LCD_SetFont(&Font16);
     BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
     BSP_LCD_SetBackColor(LCD_COLOR_DARKRED);
-    display_text(10, 335, "HOLD 2 SEC");
+    display_text(10, 350, "HOLD 2 SEC");
     BSP_LCD_SetFont(&Font20);
-    display_text(16, 375, "RESTART");
+    display_text(16, 395, "RESTART");
 
     BSP_LCD_SetFont(&Font16);
     BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
     BSP_LCD_SetBackColor(button_color(MNEMONIC_UI_BUTTON_BACK,
                                      phrase_complete));
-    display_text(173, 335, "HOLD");
+    display_text(173, 350, "HOLD");
     BSP_LCD_SetFont(&Font20);
-    display_text(165, 375, "BACK");
+    display_text(165, 395, "BACK");
 
-    BSP_LCD_SetFont(&Font24);
+    BSP_LCD_SetFont(&Font20);
     BSP_LCD_SetTextColor(phrase_complete ? LCD_COLOR_DARKGRAY : LCD_COLOR_BLACK);
     BSP_LCD_SetBackColor(button_color(MNEMONIC_UI_BUTTON_ZERO,
                                      phrase_complete));
-    display_text(386, 375, "0");
+    display_text(360, 350, "HEADS");
+    BSP_LCD_SetFont(&Font24);
+    display_text(386, 395, "0");
 
+    BSP_LCD_SetFont(&Font20);
     BSP_LCD_SetTextColor(phrase_complete ? LCD_COLOR_DARKGRAY : LCD_COLOR_WHITE);
     BSP_LCD_SetBackColor(button_color(MNEMONIC_UI_BUTTON_ONE,
                                      phrase_complete));
-    display_text(656, 375, "1");
+    display_text(630, 350, "TAILS");
+    BSP_LCD_SetFont(&Font24);
+    display_text(656, 395, "1");
 }
 
 void mnemonic_ui_draw(const MnemonicState *state)
 {
+    selected_word = 0U;
     BSP_LCD_Clear(LCD_COLOR_BLACK);
+    draw_title();
     draw_grid_lines();
     draw_word_cells(state);
     draw_status(state);
@@ -300,6 +341,7 @@ void mnemonic_ui_draw(const MnemonicState *state)
 
 void mnemonic_ui_update(const MnemonicState *state)
 {
+    selected_word = 0U;
     draw_word_cells(state);
     draw_status(state);
     draw_buttons(mnemonic_state_entropy_complete(state));
@@ -335,6 +377,36 @@ MnemonicUiButton mnemonic_ui_hit_test(uint16_t x, uint16_t y)
         return MNEMONIC_UI_BUTTON_ZERO;
     }
     return MNEMONIC_UI_BUTTON_ONE;
+}
+
+int mnemonic_ui_select_word_at(const MnemonicState *state,
+                               uint16_t x, uint16_t y)
+{
+    uint8_t column;
+    uint8_t row;
+    uint8_t word_number;
+    uint8_t completed;
+
+    if (state == NULL || x >= DISPLAY_WIDTH || y < WORD_GRID_TOP ||
+        y >= WORD_GRID_TOP + WORD_GRID_HEIGHT) {
+        return 0;
+    }
+
+    column = (uint8_t)(x / WORD_COLUMN_WIDTH);
+    row = (uint8_t)((y - WORD_GRID_TOP) / WORD_ROW_HEIGHT);
+    word_number = (uint8_t)(column * 6U + row + 1U);
+    completed = mnemonic_state_get_completed_word_count(state);
+    if (mnemonic_state_entropy_complete(state)) {
+        completed = MNEMONIC_WORD_COUNT;
+    }
+    if (word_number > completed) {
+        return 0;
+    }
+
+    selected_word = word_number;
+    draw_word_cells(state);
+    draw_status(state);
+    return 1;
 }
 
 void mnemonic_ui_show_hold_progress(MnemonicUiButton button,

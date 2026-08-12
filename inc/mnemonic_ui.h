@@ -17,6 +17,8 @@ void mnemonic_ui_draw(const MnemonicState *state);
 void mnemonic_ui_update(const MnemonicState *state);
 void mnemonic_ui_draw_error(const char *message);
 MnemonicUiButton mnemonic_ui_hit_test(uint16_t x, uint16_t y);
+int mnemonic_ui_select_word_at(const MnemonicState *state,
+                               uint16_t x, uint16_t y);
 void mnemonic_ui_show_hold_progress(MnemonicUiButton button,
                                     uint32_t elapsed_ms,
                                     uint32_t required_ms);

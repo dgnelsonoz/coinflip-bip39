@@ -8,11 +8,14 @@
 enum {
     TOUCH_POLL_MS = 20,
     BACK_HOLD_MS = 500,
-    RESTART_HOLD_MS = 2000
+    RESTART_HOLD_MS = 2000,
+    COMPLETION_LED_STEP_MS = 100,
+    COMPLETION_LED_SWEEP_COUNT = 3
 };
 
 static void SystemClock_Config( void );
 static void FatalError( void );
+static void SweepCompletionLeds( void );
 static void WaitForTouchRelease( void );
 static int WaitForProtectedButton( MnemonicUiButton button,
                                    uint32_t required_ms,
@@ -21,11 +24,15 @@ static int WaitForProtectedButton( MnemonicUiButton button,
 int main( void )
 {
     MnemonicState mnemonic;
+    Led_TypeDef led;
 
     HAL_Init();
     SystemClock_Config();
 
-    BSP_LED_Init( LED4 );
+    for( led = LED1; led <= LED4; led++ )
+    {
+        BSP_LED_Init( led );
+    }
     if( BSP_LCD_Init( ) != LCD_OK )
     {
         FatalError();
@@ -84,12 +91,19 @@ int main( void )
 
                 if( mnemonic_state_add_flip( &mnemonic, bit ) == 0 )
                 {
+                    mnemonic_ui_update( &mnemonic );
                     if( mnemonic_state_entropy_complete( &mnemonic ) )
                     {
-                        BSP_LED_On( LED4 );
+                        SweepCompletionLeds();
                     }
-                    mnemonic_ui_update( &mnemonic );
                 }
+                WaitForTouchRelease();
+            }
+            else if( button == MNEMONIC_UI_BUTTON_NONE &&
+                     mnemonic_ui_select_word_at( &mnemonic,
+                                                 ts_state.touchX[0],
+                                                 ts_state.touchY[0] ) )
+            {
                 WaitForTouchRelease();
             }
             else
@@ -99,6 +113,22 @@ int main( void )
         }
 
         HAL_Delay( TOUCH_POLL_MS );
+    }
+}
+
+static void SweepCompletionLeds( void )
+{
+    uint8_t sweep;
+    Led_TypeDef led;
+
+    for( sweep = 0; sweep < COMPLETION_LED_SWEEP_COUNT; sweep++ )
+    {
+        for( led = LED1; led <= LED4; led++ )
+        {
+            BSP_LED_On( led );
+            HAL_Delay( COMPLETION_LED_STEP_MS );
+            BSP_LED_Off( led );
+        }
     }
 }
 
