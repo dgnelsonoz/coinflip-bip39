@@ -1,79 +1,66 @@
-# Coinflip BIP-39
+## Coinflip BIP-39
 
-Coinflip is a transparent, air-gapped tool for generating a 24 word BIP39
-mnemonic from coin flips. It runs on the **STM32F469I Discovery** development
-board (`STM32F469I-DISCO`), using its integrated 800 x 480 touchscreen.
+Coinflip is a transparent, air-gapped aid for generating a 24-word BIP-39 mnemonic from coin flips. It runs on the STM32F469I Discovery development board (STM32F469I-DISCO), using its integrated 800 x 480 touchscreen.
 
 ![Coinflip running on the STM32F469I Discovery board](docs/images/stm32f469i-discovery.png)
 
-The user can independently verify each generated
-word. For every completed word, the display shows:
+In terms of security, the most critical part of your Bitcoin wallet is the private master key. So, do you trust the software in your wallet to randomly generate your keys for you? I’m looking at the bag that my Coldcard hardware wallet came in. On the bag, in bold letters, it says *“DON’T TRUST. VERIFY”*. If you’ve been following the Coldcard fiasco you can see the irony.
 
-- the 11-bit binary value;
-- the corresponding zero-based decimal index;
-- the one-based position in the BIP-39 English word list and
-- the resulting BIP39 word.
+BIP-39 defines how to generate your keys from a random selection of 24 words out of a sequenced list of 2048 words. Lose your wallet and you can regenerate it with your 24-word seed phrase.
 
-These values can be checked against an independent copy of the BIP39
-English word list. The first entry in a printed list is position 1, while its
-zero-based index is 0.
+Each of the first 23 words can be randomly selected by flipping a coin eleven times. Let heads be a binary 0 and tails be a binary 1. Sequence those eleven bits and convert the resulting binary number to decimal, add 1, then look up the corresponding number in the BIP-39 word list. Do that 23 times and you have 23 randomly selected seed words. The remaining three coin flips are combined with the checksum to determine the 24th word. No computer, no algorithm, no software-generated random number, just *100% randomness, 100% transparency*.
 
-The tool can operate air-gapped by powering the board from a USB wall power
-adaptor rather than a computer. It does not require a network connection and
-does not transmit the generated mnemonic.
+The problem is that it’s tedious to flip a coin 256 times, write the numbers down, convert them to decimal and look them up in the BIP-39 word list. And then you have to calculate the checksum for the 24th word. The coin flip to BIP-39 converter makes that process easier, *transparently*.
 
 ## How it works
 
-The user enters 256 coin flips using the `0` and `1` touchscreen buttons. The
-first 253 flips directly produce the first 23 words. The remaining three flips
-complete the entropy, after which the tool calculates the BIP39 checksum and
-derives word 24.
+Flip a coin 256 times and enter the results into the converter. For each word generated you can view the binary digits, their decimal equivalent, and the decimal equivalent plus one. (Digital sequences usually start at 0; humans usually start counting from 1.) You can look up the word in your own independent BIP-39 word list. *Don’t trust, verify*.
 
-The final verification line separates the three coin-flip entropy bits from
-the eight checksum bits with a vertical bar:
+You can find the English BIP-39 word list [here](https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt).
+
+For maximum security, plug the power cable into a 5 V USB wall plug and not the USB port on your computer. There is no data connection between the converter hardware and a computer, but *don’t trust that*.
+
+The seed phrase is deleted when powered down; nothing is stored in permanent memory. But *don’t trust that either*. Don’t pass on the converter for someone else to use. Don’t borrow one from someone unless you trust them explicitly.
+
+## Flashing the board
+
+Download the `.elf` file from the **latest GitHub release** and install [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html).
+
+Connect the STM32F469I-DISCO to your computer using a **USB Mini-B data cable** connected to the **ST-LINK USB connector (CN1)**. Do not use the other USB connector on the board.
+
+Flash the firmware with:
+
+```bash
+STM32_Programmer_CLI -c port=SWD -w coinflip-<version>.elf -v -rst
+```
+
+Replace `coinflip-<version>.elf` with the name of the downloaded `.elf` file.
+
+## Building from source
+
+The project was developed on macOS. The process on Linux and other platforms should be similar.
+
+The following development tools are required:
+
+* [Arm GNU Toolchain](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads) (`arm-none-eabi-gcc`)
+* GNU Make
+* [STM32CubeF4](https://www.st.com/en/embedded-software/stm32cubef4.html) — V1.28.0 was used during development
+* STM32CubeProgrammer for flashing the board
+
+Clone the repository and build with:
+
+```bash
+make CUBE=/path/to/STM32CubeF4
+```
+
+This produces:
 
 ```text
-LAST 24: 000|01100110 = INDEX 0102 = LIST 0103 = art
+build/coinflip.elf
 ```
 
-## Controls
+To build and flash the board in one step:
 
-- `0` and `1` record one coin flip per touch.
-- `BACK` requires a short hold and removes the latest bit. It can move backward
-  across ordinary word boundaries.
-- `RESTART` requires a two-second hold and securely clears the current entry.
-- Once all 24 words are complete, the phrase is locked and only `RESTART`
-  remains available.
-
-All 24 words remain visible until the board is powered off or the sequence is
-restarted.
-
-## Building and testing
-
-The firmware targets the STM32F469I Discovery board and uses the STM32CubeF4
-HAL and board-support libraries.
-
-Build the firmware:
-
-```sh
-make
-```
-
-Run the host-side SHA-256, state-machine, and BIP39 vector tests:
-
-```sh
-make test
-```
-
-Program the board through its onboard ST-LINK connector:
-
-```sh
+```bash
 make flash
 ```
-## Security notes
-
-- Verify the displayed values against a trusted, independent BIP39 list.
-- For air-gapped operation, power the board from a 5V USB power adaptor.
-- The seed phrase isn't stored on the device and disappears when power is removed.
-
-  
