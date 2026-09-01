@@ -16,6 +16,7 @@ OPT = -Og
 
 CFLAGS = $(CPU) $(DEFS) $(OPT) -Wall -ffunction-sections -fdata-sections
 CFLAGS += -Iinc
+CFLAGS += -I../common
 CFLAGS += -I$(CUBE)/Drivers/CMSIS/Device/ST/STM32F4xx/Include
 CFLAGS += -I$(CUBE)/Drivers/CMSIS/Include
 CFLAGS += -I$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Inc
@@ -33,6 +34,7 @@ LDLIBS = -lc -lm -lnosys
 
 VPATH = \
 	src \
+	../common \
 	$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Src \
 	$(CUBE)/Drivers/BSP/STM32469I-Discovery \
 	$(CUBE)/Drivers/BSP/Components/nt35510 \
@@ -99,9 +101,9 @@ release: $(BUILD_DIR)/$(PROJECT).elf
 test: $(BUILD_DIR)/test_mnemonic_state
 	$(BUILD_DIR)/test_mnemonic_state
 
-$(BUILD_DIR)/test_mnemonic_state: tests/test_mnemonic_state.c src/mnemonic_state.c src/sha256.c src/bip39_lookup.c inc/mnemonic_state.h inc/sha256.h inc/bip39_lookup.h
+$(BUILD_DIR)/test_mnemonic_state: ../tests/test_mnemonic_state.c ../common/mnemonic_state.c ../common/sha256.c ../common/bip39_lookup.c ../common/mnemonic_state.h ../common/sha256.h ../common/bip39_lookup.h
 	@mkdir -p $(BUILD_DIR)
-	$(HOST_CC) -std=c11 -Wall -Wextra -Werror -Iinc tests/test_mnemonic_state.c src/mnemonic_state.c src/sha256.c src/bip39_lookup.c -o $@
+	$(HOST_CC) -std=c11 -Wall -Wextra -Werror -I../common ../tests/test_mnemonic_state.c ../common/mnemonic_state.c ../common/sha256.c ../common/bip39_lookup.c -o $@
 
 clean:
 	rm -rf $(BUILD_DIR)

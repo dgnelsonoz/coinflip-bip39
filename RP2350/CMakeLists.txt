@@ -18,11 +18,11 @@ pico_sdk_init()
 add_compile_definitions(PICO_XOSC_STARTUP_DELAY_MULTIPLIER=64)
 
 add_library(coinflip_core STATIC
-    src/core/bip39_lookup.c
-    src/core/mnemonic_state.c
-    src/core/sha256.c
+    ../common/bip39_lookup.c
+    ../common/mnemonic_state.c
+    ../common/sha256.c
 )
-target_include_directories(coinflip_core PUBLIC include)
+target_include_directories(coinflip_core PUBLIC include ../common)
 
 add_library(waveshare_psram STATIC
     vendor/waveshare/psram/rp_pico_alloc.c

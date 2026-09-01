@@ -14,9 +14,9 @@ configure:
 		-DPICOTOOL_FETCH_FROM_GIT_PATH=$(abspath $(PICOTOOL_FETCH_FROM_GIT_PATH))
 
 test:
-	$(CC) -std=c11 -Wall -Wextra -Werror -Iinclude \
-		src/core/bip39_lookup.c src/core/mnemonic_state.c src/core/sha256.c \
-		tests/test_mnemonic_state.c -o /tmp/coinflip_mnemonic_tests
+	$(CC) -std=c11 -Wall -Wextra -Werror -I../common \
+		../common/bip39_lookup.c ../common/mnemonic_state.c ../common/sha256.c \
+		../tests/test_mnemonic_state.c -o /tmp/coinflip_mnemonic_tests
 	/tmp/coinflip_mnemonic_tests
 
 audit: configure
