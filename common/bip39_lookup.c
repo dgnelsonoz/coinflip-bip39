@@ -1,10 +1,14 @@
 #include "bip39_lookup.h"
 
-enum { BIP39_WORD_COUNT = 2048 };
+enum{ BIP39_WORD_COUNT = 2048 };
 
 static const char *wordlist[ BIP39_WORD_COUNT ] =
 {
+#ifdef COINFLIP_WORDLIST_FILE
+#include COINFLIP_WORDLIST_FILE
+#else
 #include "wordlists/english.inc"
+#endif
 };
 
 const char *bip39_get_word_by_index( uint16_t index )

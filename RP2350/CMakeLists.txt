@@ -18,7 +18,6 @@ pico_sdk_init()
 add_compile_definitions(PICO_XOSC_STARTUP_DELAY_MULTIPLIER=64)
 
 add_library(coinflip_core STATIC
-    ../common/bip39_lookup.c
     ../common/mnemonic_state.c
     ../common/sha256.c
 )
@@ -63,15 +62,39 @@ add_library(coinflip_graphics STATIC
 target_include_directories(coinflip_graphics PUBLIC include ../common)
 target_link_libraries(coinflip_graphics PUBLIC coinflip_fonts)
 
-add_executable(coinflip_rp2350
-    src/main.c
-    src/app/coinflip_app.c
-    src/platform/rp2350/clock.c)
-target_include_directories(coinflip_rp2350 PRIVATE include)
-target_link_libraries(coinflip_rp2350 PRIVATE
-    coinflip_core coinflip_graphics waveshare_display waveshare_touch
-    waveshare_psram pico_stdlib hardware_clocks)
-target_compile_definitions(coinflip_rp2350 PRIVATE PICO_EMBED_XIP_SETUP=1)
-pico_enable_stdio_usb(coinflip_rp2350 0)
-pico_enable_stdio_uart(coinflip_rp2350 0)
-pico_add_extra_outputs(coinflip_rp2350)
+set(COINFLIP_LANGUAGES
+    english
+    czech
+    french
+    italian
+    portuguese
+    spanish)
+
+function(add_coinflip_variant language target_name)
+    add_library(coinflip_lookup_${language} STATIC
+        ../common/bip39_lookup.c)
+    target_include_directories(coinflip_lookup_${language} PUBLIC include ../common)
+    target_compile_definitions(coinflip_lookup_${language} PRIVATE
+        COINFLIP_WORDLIST_FILE=\"wordlists/${language}.inc\")
+
+    add_executable(${target_name}
+        src/main.c
+        src/app/coinflip_app.c
+        src/platform/rp2350/clock.c)
+    target_include_directories(${target_name} PRIVATE include)
+    target_link_libraries(${target_name} PRIVATE
+        coinflip_core coinflip_lookup_${language} coinflip_graphics
+        waveshare_display waveshare_touch waveshare_psram pico_stdlib
+        hardware_clocks)
+    target_compile_definitions(${target_name} PRIVATE PICO_EMBED_XIP_SETUP=1)
+    pico_enable_stdio_usb(${target_name} 0)
+    pico_enable_stdio_uart(${target_name} 0)
+    pico_add_extra_outputs(${target_name})
+endfunction()
+
+add_coinflip_variant(english coinflip_rp2350)
+foreach(language IN LISTS COINFLIP_LANGUAGES)
+    if(NOT language STREQUAL "english")
+        add_coinflip_variant(${language} coinflip_rp2350_${language})
+    endif()
+endforeach()
