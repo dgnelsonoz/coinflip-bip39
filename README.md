@@ -25,3 +25,23 @@ make test
 The STM32 build requires the Arm GNU toolchain, GNU Make, STM32CubeF4, and
 STM32CubeProgrammer. The RP2350 build requires the Arm GNU toolchain, CMake,
 GNU Make, and the Raspberry Pi Pico SDK.
+
+By default, the external SDKs are expected beside this repository:
+
+```text
+Developer/
+├── coinflip-bip39/
+├── STM32CubeF4/
+└── pico-sdk/
+```
+
+If they are installed elsewhere, pass their locations on the command line:
+
+```bash
+make stm CUBE=/path/to/STM32CubeF4
+make rp PICO_SDK_PATH=/path/to/pico-sdk
+```
+
+The RP2350 build also uses the locally prepared Waveshare demo build when it
+needs Picotool. Its location can be overridden with
+`PICOTOOL_FETCH_FROM_GIT_PATH` when invoking the RP2350 Makefile.

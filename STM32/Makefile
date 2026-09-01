@@ -3,7 +3,7 @@ BUILD_DIR = build
 RELEASE_DIR = release
 VERSION ?= dev
 
-CUBE = /Users/dan/Developer/STM32/STM32CubeF4
+CUBE ?= ../../STM32CubeF4
 
 CC = arm-none-eabi-gcc
 HOST_CC ?= cc
