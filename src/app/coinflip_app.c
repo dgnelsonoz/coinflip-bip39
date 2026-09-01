@@ -19,7 +19,8 @@ enum
     LCD_WIDTH = 800U,
     LCD_HEIGHT = 480U,
     TRANSFER_PIXELS = LCD_WIDTH * 120U,
-    TEST_SYSTEM_CLOCK_MHZ = 260U
+    TEST_SYSTEM_CLOCK_MHZ = 260U,
+    TOUCH_RELEASE_SAMPLES = 3U
 };
 
 static const uint16_t BLACK = 0x0000U;
@@ -304,6 +305,7 @@ int main( void )
     bool touch_down = false;
     bool action_done = false;
     uint8_t held_button = 0;
+    uint8_t release_samples = 0;
     uint16_t hold_progress = 0;
     absolute_time_t press_started = nil_time;
 
@@ -330,6 +332,9 @@ int main( void )
     {
         touch->read();
         bool pressed = touch->get_data( &touch_data ) && touch_data.points > 0U;
+
+        if( pressed )
+            release_samples = 0;
 
         if( pressed && !touch_down )
         {
@@ -429,11 +434,17 @@ int main( void )
         }
         else if( !pressed && touch_down )
         {
-            coinflip_ui_clear_hold_progress( framebuffer, held_button );
-            touch_down = false;
-            action_done = false;
-            held_button = 0;
-            hold_progress = 0;
+            if( release_samples < TOUCH_RELEASE_SAMPLES )
+                ++release_samples;
+
+            if( release_samples >= TOUCH_RELEASE_SAMPLES )
+            {
+                coinflip_ui_clear_hold_progress( framebuffer, held_button );
+                touch_down = false;
+                action_done = false;
+                held_button = 0;
+                hold_progress = 0;
+            }
         }
         sleep_ms( 5 );
     }
