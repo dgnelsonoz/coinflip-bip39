@@ -219,6 +219,22 @@ static void update_state_regions( const MnemonicState *state,
     if( ( previous_entered == 0U ) != ( entered == 0U ) )
         draw_word_cell( &canvas, state, current_word );
 
+    if( entered == 0U && previous_entered > 0U && current_word > 1U )
+    {
+        char previous_bits[ MNEMONIC_WORD_BITS + 1U ];
+        uint16_t previous_index;
+
+        draw_status( &canvas, state );
+        if( mnemonic_state_get_word_index( state, current_word - 1U,
+                                           &previous_index ) == 0 )
+        {
+            format_index_bits( previous_index, previous_bits, false );
+            coinflip_graphics_text20( &canvas, 540, 258, previous_bits,
+                                     WHITE, BLACK );
+        }
+        return;
+    }
+
     snprintf( number, sizeof( number ), "%02u", entered );
     coinflip_graphics_text20( &canvas, 270, 258, number, WHITE, BLACK );
 
