@@ -97,37 +97,5 @@ The RP2350 build also uses the prepared Waveshare demo build when it needs
 Picotool. Override `PICOTOOL_FETCH_FROM_GIT_PATH` if that demo is installed
 elsewhere.
 
-## Installing the development tools on macOS
-
-Install the command-line tools with Homebrew:
-
-```bash
-brew install cmake arm-none-eabi-gcc
-```
-
-GNU Make and Git are normally provided by the macOS Command Line Tools. If
-they are not already installed, install the Command Line Tools with:
-
-```bash
-xcode-select --install
-```
-
-Install the Raspberry Pi Pico SDK beside this repository. The project requires
-Pico SDK 2.2.0 or newer:
-
-```bash
-cd /path/to/Developer
-git clone --branch 2.2.0 --depth 1 https://github.com/raspberrypi/pico-sdk.git
-cd pico-sdk
-git submodule update --init
-```
-
-Download and unpack STM32CubeF4 from ST and place it beside this repository,
-or pass its location with `CUBE=/path/to/STM32CubeF4`.
-
-Install STM32CubeProgrammer from ST if the STM32 board will be flashed. Its
-`STM32_Programmer_CLI` command must be available on `PATH`.
-
-Download the Waveshare `RP2350-Touch-LCD-4.3B-Demo` package from Waveshare for
-the RP2350 board. Keep its build directory available for the Picotool cache,
-or pass the cache location with `PICOTOOL_FETCH_FROM_GIT_PATH`.
+The host development tools and board SDKs must be installed separately. The
+required tools are listed above; the project does not install or vendor them.
