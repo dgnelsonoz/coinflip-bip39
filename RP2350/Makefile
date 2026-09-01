@@ -1,9 +1,12 @@
 PICO_SDK_PATH ?= ../../pico-sdk
 BUILD_DIR ?= build
+RELEASE_DIR ?= release
+VERSION ?= dev
 PICOTOOL_FETCH_FROM_GIT_PATH ?=
 FLASH_TARGET ?= coinflip_rp2350
+LANGUAGES = english czech french italian portuguese spanish
 
-.PHONY: all configure clean flash test audit
+.PHONY: all configure clean flash release test audit
 
 all: configure
 	$(MAKE) -C $(BUILD_DIR)
@@ -26,6 +29,19 @@ audit: configure
 		echo "ERROR: production image contains flash-write symbols"; exit 1; \
 	fi
 	@echo "Flash-write audit passed: no erase/program symbols in production ELF"
+
+release: all
+	@mkdir -p $(RELEASE_DIR)
+	@set -e; \
+	for language in $(LANGUAGES); do \
+		target=coinflip_rp2350; \
+		if [ "$$language" != "english" ]; then \
+			target=coinflip_rp2350_$$language; \
+		fi; \
+		cp $(BUILD_DIR)/$$target.uf2 \
+			$(RELEASE_DIR)/coinflip-rp2350-$$language-$(VERSION).uf2; \
+		echo "Release file: $(RELEASE_DIR)/coinflip-rp2350-$$language-$(VERSION).uf2"; \
+	done
 
 flash: configure
 	$(MAKE) -C $(BUILD_DIR) $(FLASH_TARGET)
