@@ -74,6 +74,8 @@ directories, while the root Makefile provides these convenience commands:
 ```bash
 make stm
 make rp
+make flash-stm
+make flash-rp
 make test
 ```
 

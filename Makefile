@@ -1,10 +1,16 @@
-.PHONY: stm rp test clean
+.PHONY: stm rp flash-stm flash-rp test clean
 
 stm:
 	$(MAKE) -C STM32
 
 rp:
 	$(MAKE) -C RP2350
+
+flash-stm:
+	$(MAKE) -C STM32 flash
+
+flash-rp:
+	$(MAKE) -C RP2350 flash
 
 test:
 	$(MAKE) -C STM32 test
