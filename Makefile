@@ -1,4 +1,5 @@
 VERSION ?= dev
+LANGUAGE ?= english
 
 .PHONY: stm rp release-stm release-rp flash-stm flash-rp generate-wordlists test audit clean
 
