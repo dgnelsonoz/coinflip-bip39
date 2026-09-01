@@ -102,6 +102,15 @@ containing a prepared Picotool checkout.
 The host development tools and board SDKs must be installed separately. The
 required tools are listed above; the project does not install or vendor them.
 
+The maintainer word-list command generates C data for every text list in
+`common/wordlists/`:
+
+```bash
+make generate-wordlists
+```
+
+The firmware currently builds with the English list by default.
+
 ## Platform-specific commands
 
 Most users should download the firmware file from the GitHub release and
