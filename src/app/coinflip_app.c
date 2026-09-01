@@ -197,6 +197,20 @@ static void update_state_regions( const MnemonicState *state,
         draw_word_cell( &canvas, state, previous_word );
         draw_word_cell( &canvas, state, current_word );
         draw_status( &canvas, state );
+
+        if( previous_word <= MNEMONIC_DIRECT_WORDS )
+        {
+            char previous_bits[ MNEMONIC_WORD_BITS + 1U ];
+            uint16_t previous_index;
+
+            if( mnemonic_state_get_word_index( state, previous_word,
+                                               &previous_index ) == 0 )
+            {
+                format_index_bits( previous_index, previous_bits, false );
+                coinflip_graphics_text20( &canvas, 540, 258, previous_bits,
+                                         WHITE, BLACK );
+            }
+        }
         return;
 
     }
@@ -212,6 +226,10 @@ static void update_state_regions( const MnemonicState *state,
     {
         uint16_t position = ( uint16_t )( state->bit_count - 1U );
         bit[ 0 ] = ( ( state->entropy[ position / 8U ] >> ( 7U - position % 8U ) ) & 1U ) != 0U ? '1' : '0';
+
+        if( previous_entered == 0U )
+            coinflip_graphics_fill_rect( &canvas, 540, 258, 200, 24, BLACK );
+
         coinflip_graphics_text20( &canvas, ( uint16_t )( 540U + previous_entered * 14U ),
                                  258, bit, WHITE, BLACK );
     }
