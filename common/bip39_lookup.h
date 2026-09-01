@@ -3,6 +3,6 @@
 
 #include <stdint.h>
 
-const char *bip39_get_word_by_index(uint16_t index);
+const char *bip39_get_word_by_index( uint16_t index );
 
 #endif
