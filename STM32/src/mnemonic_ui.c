@@ -47,10 +47,10 @@ static void draw_combining_mark(uint16_t x, uint16_t y, uint32_t codepoint)
     uint16_t center = (uint16_t)(x + font->Width / 2U);
     uint32_t color = BSP_LCD_GetTextColor();
 
-    if (codepoint == 0x0300U) {
+    if (codepoint == 0x0301U) {
         BSP_LCD_DrawPixel(center - 2U, y + 1U, color);
         BSP_LCD_DrawPixel(center - 1U, y, color);
-    } else if (codepoint == 0x0301U) {
+    } else if (codepoint == 0x0300U) {
         BSP_LCD_DrawPixel(center + 1U, y, color);
         BSP_LCD_DrawPixel(center + 2U, y + 1U, color);
     } else if (codepoint == 0x0303U) {
