@@ -106,7 +106,15 @@ $(BUILD_DIR)/%.o: %.s
 flash: variant
 	STM32_Programmer_CLI -c port=SWD -w $(BUILD_DIR)/$(PROJECT).elf -v -rst
 
-release: variant
+release:
+	@set -e; \
+	for language in $(LANGUAGES); do \
+		$(MAKE) WORDLIST=$$language \
+			BUILD_DIR=build/$$language \
+			PROJECT=coinflip-stm32-$$language release-variant; \
+	done
+
+release-variant: variant
 	@mkdir -p $(RELEASE_DIR)
 	cp $(BUILD_DIR)/$(PROJECT).elf $(RELEASE_DIR)/$(PROJECT)-$(VERSION).elf
 	@echo "Release file: $(RELEASE_DIR)/$(PROJECT)-$(VERSION).elf"
