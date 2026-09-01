@@ -228,10 +228,20 @@ static void update_state_regions( const MnemonicState *state,
         bit[ 0 ] = ( ( state->entropy[ position / 8U ] >> ( 7U - position % 8U ) ) & 1U ) != 0U ? '1' : '0';
 
         if( previous_entered == 0U )
-            coinflip_graphics_fill_rect( &canvas, 540, 258, 200, 24, BLACK );
+        {
+            char partial_bits[ MNEMONIC_WORD_BITS + 1U ];
+            uint8_t required = current_word == MNEMONIC_WORD_COUNT ? 3U : 11U;
 
-        coinflip_graphics_text20( &canvas, ( uint16_t )( 540U + previous_entered * 14U ),
-                                 258, bit, WHITE, BLACK );
+            coinflip_graphics_fill_rect( &canvas, 540, 258, 200, 24, BLACK );
+            format_partial_bits( state, partial_bits, required );
+            coinflip_graphics_text20( &canvas, 540, 258, partial_bits,
+                                     WHITE, BLACK );
+        }
+        else
+        {
+            coinflip_graphics_text20( &canvas, ( uint16_t )( 540U + previous_entered * 14U ),
+                                     258, bit, WHITE, BLACK );
+        }
     }
     else if( entered < previous_entered )
     {
