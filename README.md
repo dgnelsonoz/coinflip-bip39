@@ -101,3 +101,21 @@ elsewhere.
 
 The host development tools and board SDKs must be installed separately. The
 required tools are listed above; the project does not install or vendor them.
+
+## Platform-specific commands
+
+Most users should download the firmware file from the GitHub release and
+follow the flashing instructions above. These commands are for developers
+building from source.
+
+For STM32, use the STM32CubeProgrammer command-line tool:
+
+```bash
+STM32_Programmer_CLI -c port=SWD -w STM32/build/coinflip.elf -v -rst
+```
+
+For RP2350, put the board into BOOTSEL mode and copy
+`RP2350/build/coinflip_rp2350.uf2` to the mounted `RP2350`/`RPI-RP2` drive.
+The root Makefile provides `make flash-rp` for macOS and Linux systems where
+that drive is mounted automatically. On Windows, copy the `.uf2` file to the
+BOOTSEL drive using File Explorer.
