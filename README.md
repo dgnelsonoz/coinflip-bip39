@@ -95,9 +95,9 @@ make stm CUBE=/path/to/STM32CubeF4
 make rp PICO_SDK_PATH=/path/to/pico-sdk
 ```
 
-The RP2350 build also uses the prepared Waveshare demo build when it needs
-Picotool. Override `PICOTOOL_FETCH_FROM_GIT_PATH` if that demo is installed
-elsewhere.
+The RP2350 build obtains Picotool through the Pico SDK build when required.
+For an offline build, override `PICOTOOL_FETCH_FROM_GIT_PATH` with a directory
+containing a prepared Picotool checkout.
 
 The host development tools and board SDKs must be installed separately. The
 required tools are listed above; the project does not install or vendor them.
