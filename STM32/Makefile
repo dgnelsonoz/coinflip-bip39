@@ -1,8 +1,10 @@
-PROJECT = coinflip
-BUILD_DIR = build
+BUILD_DIR ?= build/$(WORDLIST)
 RELEASE_DIR = release
 VERSION ?= dev
 WORDLIST ?= english
+PROJECT ?= coinflip-stm32-$(WORDLIST)
+
+LANGUAGES = english czech french italian portuguese spanish
 
 CUBE ?= ../../STM32CubeF4
 
@@ -78,7 +80,15 @@ SRCS = \
 OBJS = $(addprefix $(BUILD_DIR)/,$(SRCS:.c=.o))
 OBJS := $(OBJS:.s=.o)
 
-all: $(BUILD_DIR)/$(PROJECT).elf
+all:
+	@set -e; \
+	for language in $(LANGUAGES); do \
+		$(MAKE) WORDLIST=$$language \
+			BUILD_DIR=build/$$language \
+			PROJECT=coinflip-stm32-$$language variant; \
+	done
+
+variant: $(BUILD_DIR)/$(PROJECT).elf
 
 $(BUILD_DIR)/$(PROJECT).elf: $(OBJS) $(LDSCRIPT)
 	@mkdir -p $(dir $@)
@@ -93,10 +103,10 @@ $(BUILD_DIR)/%.o: %.s
 	@mkdir -p $(BUILD_DIR)
 	$(CC) $(CPU) -c $< -o $@
 
-flash: $(BUILD_DIR)/$(PROJECT).elf
+flash: variant
 	STM32_Programmer_CLI -c port=SWD -w $(BUILD_DIR)/$(PROJECT).elf -v -rst
 
-release: $(BUILD_DIR)/$(PROJECT).elf
+release: variant
 	@mkdir -p $(RELEASE_DIR)
 	cp $(BUILD_DIR)/$(PROJECT).elf $(RELEASE_DIR)/$(PROJECT)-$(VERSION).elf
 	@echo "Release file: $(RELEASE_DIR)/$(PROJECT)-$(VERSION).elf"
@@ -109,6 +119,6 @@ $(BUILD_DIR)/test_mnemonic_state: ../tests/test_mnemonic_state.c ../common/mnemo
 	$(HOST_CC) -std=c11 -Wall -Wextra -Werror -I../common ../tests/test_mnemonic_state.c ../common/mnemonic_state.c ../common/sha256.c ../common/bip39_lookup.c ../common/utf8.c -o $@
 
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf build
 
 .PHONY: all clean flash release test
