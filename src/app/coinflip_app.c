@@ -120,6 +120,16 @@ static void draw_status( CoinflipCanvas *canvas, const MnemonicState *state )
     uint8_t entered = mnemonic_state_get_current_word_bit_count( state );
     uint8_t required = current_word == 24U ? 3U : 11U;
     uint8_t completed = mnemonic_state_get_completed_word_count( state );
+    bool word_boundary = state->bit_count > 0U &&
+                         state->bit_count < MNEMONIC_ENTROPY_BITS &&
+                         state->bit_count % MNEMONIC_WORD_BITS == 0U;
+
+    if( word_boundary )
+    {
+        --current_word;
+        required = current_word == 24U ? 3U : 11U;
+        entered = required;
+    }
 
     coinflip_graphics_fill_rect( canvas, 0, 248, 800, 80, BLACK );
     if( mnemonic_state_entropy_complete( state ) )
@@ -129,7 +139,16 @@ static void draw_status( CoinflipCanvas *canvas, const MnemonicState *state )
     }
     else
     {
-        format_partial_bits( state, bits, required );
+        if( word_boundary )
+        {
+            uint16_t completed_index;
+
+            if( mnemonic_state_get_word_index( state, current_word,
+                                               &completed_index ) == 0 )
+                format_index_bits( completed_index, bits, false );
+        }
+        else
+            format_partial_bits( state, bits, required );
         coinflip_graphics_text20( canvas, 10, 258, "WORD", WHITE, BLACK );
         snprintf( number, sizeof( number ), "%02u", current_word );
         coinflip_graphics_text20( canvas, 80, 258, number, WHITE, BLACK );
@@ -218,6 +237,12 @@ static void update_state_regions( const MnemonicState *state,
     /* The word-cell label changes only at the READY/IN PROGRESS boundary. */
     if( ( previous_entered == 0U ) != ( entered == 0U ) )
         draw_word_cell( &canvas, state, current_word );
+
+    if( previous_entered == 0U && entered > 0U )
+    {
+        draw_status( &canvas, state );
+        return;
+    }
 
     if( entered == 0U && previous_entered > 0U && current_word > 1U )
     {
