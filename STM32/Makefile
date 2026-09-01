@@ -2,6 +2,7 @@ PROJECT = coinflip
 BUILD_DIR = build
 RELEASE_DIR = release
 VERSION ?= dev
+WORDLIST ?= english
 
 CUBE ?= ../../STM32CubeF4
 
@@ -17,6 +18,7 @@ OPT = -Og
 CFLAGS = $(CPU) $(DEFS) $(OPT) -Wall -ffunction-sections -fdata-sections
 CFLAGS += -Iinc
 CFLAGS += -I../common
+CFLAGS += -DCOINFLIP_WORDLIST_FILE=\"wordlists/$(WORDLIST).inc\"
 CFLAGS += -I$(CUBE)/Drivers/CMSIS/Device/ST/STM32F4xx/Include
 CFLAGS += -I$(CUBE)/Drivers/CMSIS/Include
 CFLAGS += -I$(CUBE)/Drivers/STM32F4xx_HAL_Driver/Inc
