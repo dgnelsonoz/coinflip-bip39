@@ -91,6 +91,17 @@ all:
 
 variant: $(BUILD_DIR)/$(PROJECT).elf
 
+audit: all
+	@set -e; \
+	for language in $(LANGUAGES); do \
+		elf=build/$$language/coinflip-stm32-$$language.elf; \
+		if nm -C "$$elf" | \
+			rg -q 'HAL_FLASH_(Program|Ex_Erase|Unlock|Lock)|FLASH_Program'; then \
+			echo "ERROR: $$elf contains flash-write symbols"; exit 1; \
+		fi; \
+		echo "Flash-write audit passed: $$elf"; \
+	done
+
 $(BUILD_DIR)/$(PROJECT).elf: $(OBJS) $(LDSCRIPT)
 	@mkdir -p $(dir $@)
 	$(CC) $(OBJS) $(LDFLAGS) $(LDLIBS) -o $@
@@ -130,4 +141,4 @@ $(BUILD_DIR)/test_mnemonic_state: ../tests/test_mnemonic_state.c ../common/mnemo
 clean:
 	rm -rf build
 
-.PHONY: all clean flash release test
+.PHONY: all audit clean flash release test variant release-variant

@@ -24,12 +24,19 @@ test:
 	/tmp/coinflip_mnemonic_tests
 
 audit: configure
-	$(MAKE) -C $(BUILD_DIR) coinflip_rp2350
-	@if nm -C $(BUILD_DIR)/coinflip_rp2350.elf | \
-		rg -q 'flash_range_(erase|program)|flash_do_cmd'; then \
-		echo "ERROR: production image contains flash-write symbols"; exit 1; \
-	fi
-	@echo "Flash-write audit passed: no erase/program symbols in production ELF"
+	$(MAKE) -C $(BUILD_DIR) $(addprefix coinflip_rp2350_,$(filter-out english,$(LANGUAGES))) coinflip_rp2350
+	@set -e; \
+	for language in $(LANGUAGES); do \
+		target=coinflip_rp2350; \
+		if [ "$$language" != "english" ]; then \
+			target=coinflip_rp2350_$$language; \
+		fi; \
+		if nm -C "$(BUILD_DIR)/$$target.elf" | \
+			rg -q 'flash_range_(erase|program)|flash_do_cmd'; then \
+			echo "ERROR: $(BUILD_DIR)/$$target.elf contains flash-write symbols"; exit 1; \
+		fi; \
+		echo "Flash-write audit passed: $(BUILD_DIR)/$$target.elf"; \
+	done
 
 release: all
 	@mkdir -p $(RELEASE_DIR)

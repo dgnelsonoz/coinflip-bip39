@@ -1,6 +1,6 @@
 VERSION ?= dev
 
-.PHONY: stm rp release-stm release-rp flash-stm flash-rp generate-wordlists test clean
+.PHONY: stm rp release-stm release-rp flash-stm flash-rp generate-wordlists test audit clean
 
 generate-wordlists:
 	python3 tools/generate_wordlists.py
@@ -26,6 +26,10 @@ flash-rp:
 test:
 	$(MAKE) -C STM32 test
 	$(MAKE) -C RP2350 test
+
+audit:
+	$(MAKE) -C STM32 audit
+	$(MAKE) -C RP2350 audit
 
 clean:
 	$(MAKE) -C STM32 clean
