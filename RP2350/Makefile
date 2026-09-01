@@ -15,7 +15,7 @@ configure:
 
 test:
 	$(CC) -std=c11 -Wall -Wextra -Werror -I../common \
-		../common/bip39_lookup.c ../common/mnemonic_state.c ../common/sha256.c \
+		../common/bip39_lookup.c ../common/mnemonic_state.c ../common/sha256.c ../common/utf8.c \
 		../tests/test_mnemonic_state.c -o /tmp/coinflip_mnemonic_tests
 	/tmp/coinflip_mnemonic_tests
 

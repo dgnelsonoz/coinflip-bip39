@@ -1,6 +1,7 @@
 #include "mnemonic_state.h"
 #include "bip39_lookup.h"
 #include "sha256.h"
+#include "utf8.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -150,6 +151,26 @@ static void test_sha256_vectors(void)
                   strlen(two_block_message), two_block_digest);
 }
 
+static void test_utf8_decoder(void)
+{
+    const char *text = "A\xc3\xa9\xe2\x82\xac\xf0\x90\x8d\x88";
+    const char *invalid = "\xc0\x80";
+    uint32_t codepoint;
+
+    assert(coinflip_utf8_next(&text, &codepoint) == 1);
+    assert(codepoint == 0x41U);
+    assert(coinflip_utf8_next(&text, &codepoint) == 1);
+    assert(codepoint == 0xe9U);
+    assert(coinflip_utf8_next(&text, &codepoint) == 1);
+    assert(codepoint == 0x20acU);
+    assert(coinflip_utf8_next(&text, &codepoint) == 1);
+    assert(codepoint == 0x10348U);
+    assert(coinflip_utf8_next(&text, &codepoint) == 0);
+
+    assert(coinflip_utf8_next(&invalid, &codepoint) == -1);
+    assert(coinflip_utf8_next(NULL, &codepoint) == -1);
+}
+
 static void load_entropy(MnemonicState *state,
                          const uint8_t entropy[MNEMONIC_ENTROPY_BYTES])
 {
@@ -284,6 +305,7 @@ int main(void)
     test_final_entropy_bits();
     test_secure_restart();
     test_sha256_vectors();
+    test_utf8_decoder();
     test_bip39_vectors();
 
     puts("mnemonic_state tests passed");

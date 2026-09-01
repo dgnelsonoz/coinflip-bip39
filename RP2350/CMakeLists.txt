@@ -21,6 +21,7 @@ add_library(coinflip_core STATIC
     ../common/bip39_lookup.c
     ../common/mnemonic_state.c
     ../common/sha256.c
+    ../common/utf8.c
 )
 target_include_directories(coinflip_core PUBLIC include ../common)
 

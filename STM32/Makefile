@@ -46,6 +46,7 @@ SRCS = \
 	mnemonic_state.c \
 	mnemonic_ui.c \
 	sha256.c \
+	utf8.c \
 	stm32f4xx_it.c \
 	system_stm32f4xx.c \
 	startup_stm32f469nihx.s \
@@ -101,9 +102,9 @@ release: $(BUILD_DIR)/$(PROJECT).elf
 test: $(BUILD_DIR)/test_mnemonic_state
 	$(BUILD_DIR)/test_mnemonic_state
 
-$(BUILD_DIR)/test_mnemonic_state: ../tests/test_mnemonic_state.c ../common/mnemonic_state.c ../common/sha256.c ../common/bip39_lookup.c ../common/mnemonic_state.h ../common/sha256.h ../common/bip39_lookup.h
+$(BUILD_DIR)/test_mnemonic_state: ../tests/test_mnemonic_state.c ../common/mnemonic_state.c ../common/sha256.c ../common/bip39_lookup.c ../common/utf8.c ../common/mnemonic_state.h ../common/sha256.h ../common/bip39_lookup.h ../common/utf8.h
 	@mkdir -p $(BUILD_DIR)
-	$(HOST_CC) -std=c11 -Wall -Wextra -Werror -I../common ../tests/test_mnemonic_state.c ../common/mnemonic_state.c ../common/sha256.c ../common/bip39_lookup.c -o $@
+	$(HOST_CC) -std=c11 -Wall -Wextra -Werror -I../common ../tests/test_mnemonic_state.c ../common/mnemonic_state.c ../common/sha256.c ../common/bip39_lookup.c ../common/utf8.c -o $@
 
 clean:
 	rm -rf $(BUILD_DIR)
