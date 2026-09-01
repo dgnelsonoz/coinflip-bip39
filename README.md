@@ -1,76 +1,73 @@
 ## Coinflip BIP-39
 
-Coinflip is a transparent, air-gapped aid for generating a 24-word BIP-39 mnemonic from coin flips. It runs on the STM32F469I Discovery development board (STM32F469I-DISCO), using its integrated 800 x 480 touchscreen.
+Coinflip is an offline, transparent, verifiable, inexpensive and easy to use tool for generating a 24-word BIP-39 mnemonic from coin flips or binary dice rolls.  It runs on either the Waveshare RP2350 4.3inch Capacitive Touch Display Development Board (RP2350-Touch-LCD-4.3B-BOX) or on the STM32F469I Discovery Development Board (STM32F469I-DISCO), using an integrated 800 x 480 touchscreen.  The Waveshare board is the preferred option. The Waveshare board comes with an optional case and is easier to program. At the time of writing the STM32 board has proven difficult to source.
 
-![Coinflip running on the STM32F469I Discovery board](STM32/docs/images/stm32f469i-discovery.png)
+The software supports the official BIP-39 wordlists in English, French, Spanish, Italian, Czech and Portuguese.
 
-In terms of security, the most critical part of your Bitcoin wallet is the private master key. So, do you trust the software in your wallet to randomly generate your keys for you? I’m looking at the bag that my Coldcard hardware wallet came in. On the bag, in bold letters, it says *“DON’T TRUST. VERIFY”*. If you’ve been following the Coldcard fiasco you can see the irony.
+![Coinflip running on the Waveshare board](docs/images/waveshare.png)
 
-BIP-39 defines how to generate your keys from a random selection of 24 words out of a sequenced list of 2048 words. Lose your wallet and you can regenerate it with your 24-word seed phrase.
 
-Each of the first 23 words can be randomly selected by flipping a coin eleven times. Let heads be a binary 0 and tails be a binary 1. Sequence those eleven bits and convert the resulting binary number to decimal, add 1, then look up the corresponding number in the BIP-39 word list. Do that 23 times and you have 23 randomly selected seed words. The remaining three coin flips are combined with the checksum to determine the 24th word. No computer, no algorithm, no software-generated random number, just *100% randomness, 100% transparency*.
+In terms of security, the most critical part of your Bitcoin wallet is the private master key. So, do you trust the software in your wallet to opaquely generate your keys for you? I’m looking at the bag that my Coldcard hardware wallet came in. On the bag, in bold letters, it says *“DON’T TRUST. VERIFY”*. If you’ve been following the Coldcard fiasco you can see the irony.
+
+BIP-39 defines how to generate your keys from a random selection of 24 words out of a sequenced list of 2048 words. Lose your wallet and you can regenerate it with your 24-word seed phrase (plus your derivation path).
+
+Each of the first 23 words can be randomly selected by flipping a coin eleven times. Let heads be a binary 0 and tails be a binary 1. Or you can use binary dice, eleven of them for one word.  Sequence those eleven bits and convert the resulting binary number to decimal, add 1, then look up the corresponding number in the BIP-39 word list of your preferred language. Do that 23 times and you have 23 randomly selected seed words. The remaining three coin flips are combined with the checksum to determine the 24th word. No computer, no algorithm, no software-generated random number, just *100% randomness, 100% transparency*.
+
 
 The problem is that it’s tedious to flip a coin 256 times, write the numbers down, convert them to decimal and look them up in the BIP-39 word list. And then you have to calculate the checksum for the 24th word. The coin flip to BIP-39 converter makes that process easier, *transparently*.
 
 ## How it works
 
-Flip a coin 256 times and enter the results into the converter. For each word generated you can view the binary digits, their decimal equivalent, and the decimal equivalent plus one. (Digital sequences usually start at 0; humans usually start counting from 1.) You can look up the word in your own independent BIP-39 word list. *Don’t trust, verify*.
+Flip a coin eleven times to generate each seed word.  Or roll a binary dice eleven times, or eleven binary dice in one go and line them up randomly.  Enter the binary digits, 1s and 0s, into the converter and watch a seed word appear along with its decimal position in the word list. The position in the word list is the binary to decimal conversion of your eleven bit binary number plus one.  We add one because computers start counting from zero, we start counting from the number one. 
 
-You can find the English BIP-39 word list [here](https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt).
+Download a BIP-39 wordlist that has both the word's decimal number position and its binary equivalent.  The middle row of the converter displays the word's binary number (coinflips) and its index into the list.  Look up the word by its index, compare the binary number in the list with the binary number on the display.  If they are the same you can feel confident that the Coinflip converter is genuine.  Looking in an independent word list is optional, but remember, *don't trust, verify.*
 
-For maximum security, plug the power cable into a 5 V USB wall plug and not the USB port on your computer. There is no data connection between the converter hardware and a computer, but *don’t trust that*.
 
-The seed phrase is deleted when powered down; nothing is stored in permanent memory. But *don’t trust that either*. Don’t pass on the converter for someone else to use. Don’t borrow one from someone unless you trust them explicitly.
+You can find the official BIP-39 word lists [here](https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt).
 
-## Flashing the board
+You can find an English list with the binary numbers included [here](https://github.com/hatgit/BIP39-wordlist-printable-en/blob/master/BIP39-en-printable.txt).
 
-Download the `.elf` file from the **latest GitHub release** and install [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html).
+For maximum security, plug the power cable into a 5 V USB wall plug and not the USB port on your computer.
+
+The seed phrase is stored in volatile memory and will be lost when powered down; no sensitive data are stored in permanent memory.  You will have to write the phrase down and find a way to store it securely.
+
+## Flashing the Waveshare board
+
+Download the `.uf2` file for your desired language from the **latest GitHub release**.  Connect the Waveshare board to your computer with the USB cable.  Put the board into BOOTSEL mode by holding the BOOT button, press and release the RESET button and then release the BOOT button. Copy
+`coinflip-rp2350-<language-version>.uf2` to the mounted `RP2350`/`RPI-RP2` drive. 
+
+## Flashing the STM32 board
+
+Download the `.elf` file for your desired language from the **latest GitHub release** and install [STM32CubeProgrammer](https://www.st.com/en/development-tools/stm32cubeprog.html).
 
 Connect the STM32F469I-DISCO to your computer using a **USB Mini-B data cable** connected to the **ST-LINK USB connector (CN1)**. Do not use the other USB connector on the board.
 
-Flash the firmware with:
+From a Terminal command line, flash the firmware with:
 
 ```bash
-STM32_Programmer_CLI -c port=SWD -w coinflip-<version>.elf -v -rst
+STM32_Programmer_CLI -c port=SWD -w coinflip-stm32-<language-version>.elf -v -rst
 ```
-
-Replace `coinflip-<version>.elf` with the name of the downloaded `.elf` file.
 
 ## Building from source
 
-The project was developed on macOS. The process on Linux and other platforms should be similar.
+## Prerequisites
 
-The following development tools are required:
-
+Both boards require
 * [Arm GNU Toolchain](https://developer.arm.com/downloads/-/arm-gnu-toolchain-downloads) (`arm-none-eabi-gcc`)
 * GNU Make
+* CMake
+
+The Waveshare board requires
+* [Raspberry Pi Pico SDK](https://github.com/raspberrypi/pico-sdk)
+
+The STM32 board requires
 * [STM32CubeF4](https://www.st.com/en/embedded-software/stm32cubef4.html) — V1.28.0 was used during development
 * STM32CubeProgrammer for flashing the board
 
-Clone the repository and build with:
 
-```bash
-make CUBE=/path/to/STM32CubeF4
-```
+The repository contains an RP2350 implementation in `RP2350/` and an STM32 implementation in `STM32/`.  The two boards can be built independently, they don't have to be built together.
 
-This produces:
-
-```text
-build/coinflip.elf
-```
-
-To build and flash the board in one step:
-
-```bash
-make flash
-```
-
-## Additional platform support
-
-The repository also contains an RP2350 implementation in `RP2350/`. The
-platform-specific source and build systems remain in their respective
-directories, while the root Makefile provides these convenience commands:
-
+From the coinflip-bip39 directory:
 ```bash
 make stm
 make rp
@@ -82,7 +79,7 @@ make test
 The default external SDK layout is:
 
 ```text
-Developer/
+your-build-location/
 ├── coinflip-bip39/
 ├── STM32CubeF4/
 └── pico-sdk/
@@ -95,52 +92,18 @@ make stm CUBE=/path/to/STM32CubeF4
 make rp PICO_SDK_PATH=/path/to/pico-sdk
 ```
 
-The RP2350 build obtains Picotool through the Pico SDK build when required.
-For an offline build, override `PICOTOOL_FETCH_FROM_GIT_PATH` with a directory
-containing a prepared Picotool checkout.
-
-The host development tools and board SDKs must be installed separately. The
-required tools are listed above; the project does not install or vendor them.
-
-The maintainer word-list command generates C data for every text list in
-`common/wordlists/`:
-
-```bash
-make generate-wordlists
-```
-
-The firmware currently builds with the English list by default.
-
-## Platform-specific commands
-
-Most users should download the firmware file from the GitHub release and
-follow the flashing instructions above. These commands are for developers
-building from source.
-
-For STM32, use the STM32CubeProgrammer command-line tool:
-
-```bash
-STM32_Programmer_CLI -c port=SWD -w STM32/build/coinflip.elf -v -rst
-```
-
-For RP2350, put the board into BOOTSEL mode and copy
-`RP2350/build/coinflip_rp2350.uf2` to the mounted `RP2350`/`RPI-RP2` drive.
-The root Makefile provides `make flash-rp` for macOS and Linux systems where
-that drive is mounted automatically. On Windows, copy the `.uf2` file to the
-BOOTSEL drive using File Explorer.
-
 ## Make command summary
 
 From the project root:
 
 ```bash
 make generate-wordlists       # Generate all six wordlists
-make stm                      # Build all six STM32 ELF files
-make rp                       # Build all six RP2350 ELF/UF2 files
+make stm                      # Build all six language specific STM32 ELF files
+make rp                       # Build all six language specific RP2350 ELF/UF2 files
 make flash-stm                # Build and flash English STM32 firmware
 make flash-rp                 # Build and flash English RP2350 firmware
 make flash-stm LANGUAGE=french
-make flash-rp LANGUAGE=french # Build and flash a selected language
+make flash-rp LANGUAGE=french # Flash a selected language, defaults to english
 make release-stm VERSION=1.2.0
 make release-rp VERSION=1.2.0 # Package all six releases
 make test                     # Run tests for both platforms
