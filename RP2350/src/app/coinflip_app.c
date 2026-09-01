@@ -96,7 +96,7 @@ static void draw_word_cell( CoinflipCanvas *canvas, const MnemonicState *state,
     {
         snprintf( label, sizeof( label ), "%02u [%s]", word,
                  mnemonic_state_get_current_word_bit_count( state ) == 0U
-                 ? "READY" : "IN PROGRESS" );
+                 ? "ready" : "in progress" );
     }
     else if( word == 24U )
         snprintf( label, sizeof( label ), "%02u [CHECKSUM]", word );
