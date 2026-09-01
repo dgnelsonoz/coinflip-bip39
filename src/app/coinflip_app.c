@@ -198,7 +198,7 @@ static void update_state_regions( const MnemonicState *state,
         draw_word_cell( &canvas, state, current_word );
         draw_status( &canvas, state );
 
-        if( previous_word <= MNEMONIC_DIRECT_WORDS )
+        if( current_word > previous_word && previous_word <= MNEMONIC_DIRECT_WORDS )
         {
             char previous_bits[ MNEMONIC_WORD_BITS + 1U ];
             uint16_t previous_index;
