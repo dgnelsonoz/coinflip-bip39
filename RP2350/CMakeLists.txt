@@ -63,8 +63,10 @@ target_include_directories(coinflip_graphics PUBLIC include)
 target_link_libraries(coinflip_graphics PUBLIC coinflip_fonts)
 
 add_executable(coinflip_rp2350
+    src/main.c
     src/app/coinflip_app.c
     src/platform/rp2350/clock.c)
+target_include_directories(coinflip_rp2350 PRIVATE include)
 target_link_libraries(coinflip_rp2350 PRIVATE
     coinflip_core coinflip_graphics waveshare_display waveshare_touch
     waveshare_psram pico_stdlib hardware_clocks)
