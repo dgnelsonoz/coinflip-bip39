@@ -18,10 +18,10 @@ release-rp:
 	$(MAKE) -C RP2350 release VERSION=$(VERSION)
 
 flash-stm:
-	$(MAKE) -C STM32 flash
+	$(MAKE) -C STM32 flash WORDLIST=$(LANGUAGE)
 
 flash-rp:
-	$(MAKE) -C RP2350 flash
+	$(MAKE) -C RP2350 flash LANGUAGE=$(LANGUAGE)
 
 test:
 	$(MAKE) -C STM32 test

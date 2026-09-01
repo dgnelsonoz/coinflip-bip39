@@ -1,7 +1,8 @@
 BUILD_DIR ?= build/$(WORDLIST)
 RELEASE_DIR = release
 VERSION ?= dev
-WORDLIST ?= english
+LANGUAGE ?= english
+WORDLIST ?= $(LANGUAGE)
 PROJECT ?= coinflip-stm32-$(WORDLIST)
 
 LANGUAGES = english czech french italian portuguese spanish

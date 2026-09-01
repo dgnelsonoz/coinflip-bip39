@@ -3,7 +3,8 @@ BUILD_DIR ?= build
 RELEASE_DIR ?= release
 VERSION ?= dev
 PICOTOOL_FETCH_FROM_GIT_PATH ?=
-FLASH_TARGET ?= coinflip_rp2350
+LANGUAGE ?= english
+FLASH_TARGET ?= $(if $(filter english,$(LANGUAGE)),coinflip_rp2350,coinflip_rp2350_$(LANGUAGE))
 LANGUAGES = english czech french italian portuguese spanish
 
 .PHONY: all configure clean flash release test audit
