@@ -22,7 +22,7 @@ def c_string(word: str) -> str:
 
 def generate(language: str, wordlist_dir: Path) -> None:
     source = wordlist_dir / f"{language}.txt"
-    destination = wordlist_dir / f"{language}_words.c.inc"
+    destination = wordlist_dir / f"{language}.inc"
     words = source.read_text(encoding="utf-8").splitlines()
 
     if len(words) != WORD_COUNT:

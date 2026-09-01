@@ -4,7 +4,7 @@ enum { BIP39_WORD_COUNT = 2048 };
 
 static const char *wordlist[ BIP39_WORD_COUNT ] =
 {
-#include "wordlists/english_words.c.inc"
+#include "wordlists/english.inc"
 };
 
 const char *bip39_get_word_by_index( uint16_t index )
