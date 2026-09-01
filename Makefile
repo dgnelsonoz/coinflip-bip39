@@ -1,9 +1,7 @@
 .PHONY: stm rp flash-stm flash-rp generate-wordlists test clean
 
-WORDLIST_LANG ?= english
-
 generate-wordlists:
-	python3 tools/generate_wordlists.py --language $(WORDLIST_LANG)
+	python3 tools/generate_wordlists.py
 
 stm:
 	$(MAKE) -C STM32

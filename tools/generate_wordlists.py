@@ -47,7 +47,11 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    languages = args.language or ["english"]
+    languages = args.language or sorted(
+        path.stem for path in args.wordlist_dir.glob("*.txt")
+    )
+    if not languages:
+        raise ValueError(f"{args.wordlist_dir}: no .txt word lists found")
     for language in dict.fromkeys(languages):
         generate(language, args.wordlist_dir)
     return 0
