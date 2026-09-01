@@ -181,6 +181,15 @@ static void draw_status(const MnemonicState *state)
     uint8_t completed = mnemonic_state_get_completed_word_count(state);
     uint8_t detail_word;
     uint16_t detail_index;
+    int word_boundary = state->bit_count > 0U &&
+                        state->bit_count < MNEMONIC_ENTROPY_BITS &&
+                        state->bit_count % MNEMONIC_WORD_BITS == 0U;
+
+    if (word_boundary) {
+        --word_number;
+        required = word_number == 24U ? 3U : MNEMONIC_WORD_BITS;
+        entered = required;
+    }
 
     BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
     BSP_LCD_FillRect(0, STATUS_TOP, DISPLAY_WIDTH, STATUS_HEIGHT);
@@ -194,7 +203,16 @@ static void draw_status(const MnemonicState *state)
                                 CENTER_MODE);
         completed = MNEMONIC_WORD_COUNT;
     } else {
-        format_partial_bits(state, bits, required);
+        if (word_boundary) {
+            uint16_t completed_index;
+
+            if (mnemonic_state_get_word_index(state, word_number,
+                                               &completed_index) == 0) {
+                format_index_bits(completed_index, bits, 0);
+            }
+        } else {
+            format_partial_bits(state, bits, required);
+        }
         snprintf(status, sizeof(status),
                  "WORD %02u/24   FLIP %02u/%02u   BITS: %s",
                  (unsigned int)word_number, (unsigned int)entered,
@@ -299,7 +317,7 @@ static void draw_buttons(int phrase_complete)
     BSP_LCD_SetFont(&Font16);
     BSP_LCD_SetTextColor(LCD_COLOR_WHITE);
     BSP_LCD_SetBackColor(LCD_COLOR_DARKRED);
-    display_text(10, 350, "HOLD 2 SEC");
+    display_text(10, 350, "HOLD 1 SEC");
     BSP_LCD_SetFont(&Font20);
     display_text(16, 395, "RESTART");
 
