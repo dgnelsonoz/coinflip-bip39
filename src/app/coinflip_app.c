@@ -222,6 +222,19 @@ static void update_state_regions( const MnemonicState *state,
     }
 }
 
+static void clear_word_selection( const MnemonicState *state )
+{
+    CoinflipCanvas canvas = { framebuffer, LCD_WIDTH, LCD_HEIGHT };
+    uint8_t previous_selected = selected_word;
+
+    if( previous_selected == 0U )
+        return;
+
+    selected_word = 0U;
+    draw_word_cell( &canvas, state, previous_selected );
+    draw_status( &canvas, state );
+}
+
 static void draw_coinflip_screen( uint16_t *pixels, const MnemonicState *state )
 {
     CoinflipCanvas canvas = { pixels, LCD_WIDTH, LCD_HEIGHT };
@@ -388,6 +401,7 @@ int main( void )
             {
                 uint8_t previous_word = mnemonic_state_get_current_word_number( &state );
                 uint8_t previous_entered = mnemonic_state_get_current_word_bit_count( &state );
+                clear_word_selection( &state );
                 mnemonic_state_add_flip( &state, 0 );
                 action_done = true;
                 update_state_regions( &state, previous_word, previous_entered );
@@ -396,6 +410,7 @@ int main( void )
             {
                 uint8_t previous_word = mnemonic_state_get_current_word_number( &state );
                 uint8_t previous_entered = mnemonic_state_get_current_word_bit_count( &state );
+                clear_word_selection( &state );
                 mnemonic_state_add_flip( &state, 1 );
                 action_done = true;
                 update_state_regions( &state, previous_word, previous_entered );
