@@ -1,6 +1,6 @@
 PICO_SDK_PATH ?= ../../pico-sdk
 BUILD_DIR ?= build
-PICOTOOL_FETCH_FROM_GIT_PATH ?= ../RP2350-Touch-LCD-4.3B-Demo/build/_deps
+PICOTOOL_FETCH_FROM_GIT_PATH ?= ../../RP2350/RP2350-Touch-LCD-4.3B-Demo/build/_deps
 FLASH_TARGET ?= coinflip_rp2350
 
 .PHONY: all configure clean flash test audit
