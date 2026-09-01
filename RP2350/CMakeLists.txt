@@ -21,7 +21,6 @@ add_library(coinflip_core STATIC
     ../common/bip39_lookup.c
     ../common/mnemonic_state.c
     ../common/sha256.c
-    ../common/utf8.c
 )
 target_include_directories(coinflip_core PUBLIC include ../common)
 
@@ -59,8 +58,9 @@ target_include_directories(coinflip_fonts PUBLIC vendor/waveshare/fonts)
 
 add_library(coinflip_graphics STATIC
     src/ui/graphics.c
-    src/ui/coinflip_ui.c)
-target_include_directories(coinflip_graphics PUBLIC include)
+    src/ui/coinflip_ui.c
+    ../common/utf8.c)
+target_include_directories(coinflip_graphics PUBLIC include ../common)
 target_link_libraries(coinflip_graphics PUBLIC coinflip_fonts)
 
 add_executable(coinflip_rp2350
