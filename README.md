@@ -128,3 +128,22 @@ For RP2350, put the board into BOOTSEL mode and copy
 The root Makefile provides `make flash-rp` for macOS and Linux systems where
 that drive is mounted automatically. On Windows, copy the `.uf2` file to the
 BOOTSEL drive using File Explorer.
+
+## Make command summary
+
+From the project root:
+
+```bash
+make generate-wordlists       # Generate all six wordlists
+make stm                      # Build all six STM32 ELF files
+make rp                       # Build all six RP2350 ELF/UF2 files
+make flash-stm                # Build and flash English STM32 firmware
+make flash-rp                 # Build and flash English RP2350 firmware
+make flash-stm LANGUAGE=french
+make flash-rp LANGUAGE=french # Build and flash a selected language
+make release-stm VERSION=1.2.0
+make release-rp VERSION=1.2.0 # Package all six releases
+make test                     # Run tests for both platforms
+make audit                    # Audit all variants for flash-write symbols
+make clean                    # Remove temporary build files
+```
